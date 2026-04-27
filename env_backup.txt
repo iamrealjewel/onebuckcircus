@@ -1,0 +1,10 @@
+DATABASE_URL="mysql://root:@localhost:3306/onebuckcircus"
+NEXTAUTH_SECRET="circus-secret-999-chaos"
+NEXTAUTH_URL="http://localhost:3000"
+
+# SMTP Configuration (Google/Gmail)
+SMTP_HOST="smtp.gmail.com"
+SMTP_PORT="587"
+SMTP_SECURE="false"
+SMTP_USER="iamrealjewel@gmail.com"
+SMTP_PASS="fdobnfvnijgtvcod" # Not your regular password!
