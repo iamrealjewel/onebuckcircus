@@ -3,44 +3,41 @@ import { useState } from "react";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import ToolWrapper from "@/components/ToolWrapper";
-import { settleArgument } from "@/lib/engines";
+import { aiSettleArgument } from "@/app/actions/acts";
 import { Scale, ArrowLeft, Share2, RefreshCw, Sparkles } from "lucide-react";
+import { useCircusDialog } from "@/components/CircusAlertProvider";
 
 export default function SettleItPage() {
   const [topic, setTopic] = useState("");
+  const [pName, setPName] = useState("");
   const [plaintiff, setPlaintiff] = useState("");
+  const [dName, setDName] = useState("");
   const [defendant, setDefendant] = useState("");
   const [result, setResult] = useState<any | null>(null);
   const [loading, setLoading] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const { showAlert } = useCircusDialog();
 
   const handleSubmit = async () => {
-    if (!topic || !plaintiff || !defendant) return;
+    if (!topic || !plaintiff || !defendant || !pName || !dName) {
+      const roasts = [
+        "The judge is not a mind reader. State ALL the arguments AND names!",
+        "Court requires ALL documentation. Fill in the blanks before we hold you in contempt.",
+        "Are we arguing about nothing? Because that's what you typed.",
+        "You expect a ruling on half a story? Submit the whole thing."
+      ];
+      setToastMessage(roasts[Math.floor(Math.random() * roasts.length)]);
+      setTimeout(() => setToastMessage(null), 4000);
+      return;
+    }
     setLoading(true);
     
     try {
-      // 1. Get base engine verdict
-      const verdict = settleArgument(plaintiff, defendant, topic);
-      
-      // 2. Call the AI Oracle for a "Realistic and Fantastic" expansion
-      const aiRes = await fetch("/api/ai", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          actId: "settle-it",
-          prompt: `Settle this dispute: ${topic}. Plaintiff case: ${plaintiff}. Defendant case: ${defendant}. Initial verdict: ${verdict.verdict}.`
-        })
-      });
-      
-      const aiData = await aiRes.json();
-      
-      // 3. Merge engine logic with AI creativity
-      setResult({
-        ...verdict,
-        aiExpansion: aiData.content,
-        oracleName: aiData.model
-      });
+      const verdict = await aiSettleArgument(pName, plaintiff, dName, defendant, topic);
+      setResult(verdict);
     } catch (err) {
       console.error(err);
+      showAlert("The user tried to settle an argument but the AI failed. Roast them for their petty dispute breaking the Oracle.");
     }
     
     setLoading(false);
@@ -77,32 +74,54 @@ export default function SettleItPage() {
                   />
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] mb-2">Your Side</label>
-                    <textarea 
-                      value={plaintiff} 
-                      onChange={e => setPlaintiff(e.target.value)} 
-                      rows={4} 
-                      placeholder="State your case..." 
-                      className="w-full bg-[var(--bg)] border border-[var(--border-color)] rounded-xl px-4 py-3 text-sm focus:border-[var(--brand-primary)] outline-none transition-colors resize-none" 
-                    />
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] mb-2">Your Name</label>
+                      <input 
+                        value={pName} 
+                        onChange={e => setPName(e.target.value)} 
+                        placeholder="e.g. Alice" 
+                        className="w-full bg-[var(--bg)] border border-[var(--border-color)] rounded-xl px-4 py-3 text-sm focus:border-[var(--brand-primary)] outline-none transition-colors" 
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] mb-2">Your Argument</label>
+                      <textarea 
+                        value={plaintiff} 
+                        onChange={e => setPlaintiff(e.target.value)} 
+                        rows={4} 
+                        placeholder="State your case..." 
+                        className="w-full bg-[var(--bg)] border border-[var(--border-color)] rounded-xl px-4 py-3 text-sm focus:border-[var(--brand-primary)] outline-none transition-colors resize-none" 
+                      />
+                    </div>
                   </div>
-                  <div>
-                    <label className="block text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] mb-2">Their Side</label>
-                    <textarea 
-                      value={defendant} 
-                      onChange={e => setDefendant(e.target.value)} 
-                      rows={4} 
-                      placeholder="Present their argument..." 
-                      className="w-full bg-[var(--bg)] border border-[var(--border-color)] rounded-xl px-4 py-3 text-sm focus:border-[var(--brand-primary)] outline-none transition-colors resize-none" 
-                    />
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] mb-2">Their Name</label>
+                      <input 
+                        value={dName} 
+                        onChange={e => setDName(e.target.value)} 
+                        placeholder="e.g. Bob" 
+                        className="w-full bg-[var(--bg)] border border-[var(--border-color)] rounded-xl px-4 py-3 text-sm focus:border-[var(--brand-primary)] outline-none transition-colors" 
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] mb-2">Their Flawed Argument</label>
+                      <textarea 
+                        value={defendant} 
+                        onChange={e => setDefendant(e.target.value)} 
+                        rows={4} 
+                        placeholder="Present their argument..." 
+                        className="w-full bg-[var(--bg)] border border-[var(--border-color)] rounded-xl px-4 py-3 text-sm focus:border-[var(--brand-primary)] outline-none transition-colors resize-none" 
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
               
               <button 
                 onClick={handleSubmit} 
-                disabled={loading || !topic || !plaintiff || !defendant} 
+                disabled={loading} 
                 className="btn-primary w-full py-4 text-lg"
               >
                 {loading ? "🔨 Deliberating..." : "Settle It — Unlimited with Pass"}
@@ -129,24 +148,18 @@ export default function SettleItPage() {
                     "{result.ruling}"
                   </p>
 
-                  {/* AI Oracle Expansion */}
-                  <div className="w-full p-6 rounded-2xl bg-[var(--bg-surface)] border border-[var(--brand-primary)]/20 mb-8 relative">
-                    <div className="absolute -top-3 left-6 px-3 py-1 bg-[var(--brand-primary)] text-white text-[8px] font-black uppercase tracking-widest rounded-full flex items-center gap-1">
-                      <Sparkles size={10} /> ORACLE INSIGHT ({result.oracleName})
-                    </div>
-                    <p className="text-sm leading-relaxed text-[var(--text-muted)] italic font-medium">
-                      "{result.aiExpansion}"
-                    </p>
-                  </div>
+
 
                   <div className="grid grid-cols-2 gap-4 w-full mb-8">
-                    <div className="p-4 rounded-2xl bg-[var(--bg)] border border-[var(--border-color)]">
-                      <div className="text-[10px] font-black text-[var(--text-muted)] uppercase mb-1">Plaintiff</div>
-                      <div className="text-2xl font-black">{result.plaintiffScore}</div>
+                    <div className="p-4 rounded-2xl bg-[var(--bg)] border border-[var(--border-color)] text-center relative overflow-hidden">
+                      {result.winner === "plaintiff" && <div className="absolute top-0 left-0 w-full h-1 bg-green-500" />}
+                      <div className="text-[10px] font-black text-[var(--text-muted)] uppercase mb-1">{pName}</div>
+                      <div className="text-3xl font-black">{result.plaintiffScore}</div>
                     </div>
-                    <div className="p-4 rounded-2xl bg-[var(--bg)] border border-[var(--border-color)]">
-                      <div className="text-[10px] font-black text-[var(--text-muted)] uppercase mb-1">Defendant</div>
-                      <div className="text-2xl font-black">{result.defendantScore}</div>
+                    <div className="p-4 rounded-2xl bg-[var(--bg)] border border-[var(--border-color)] text-center relative overflow-hidden">
+                      {result.winner === "defendant" && <div className="absolute top-0 left-0 w-full h-1 bg-green-500" />}
+                      <div className="text-[10px] font-black text-[var(--text-muted)] uppercase mb-1">{dName}</div>
+                      <div className="text-3xl font-black">{result.defendantScore}</div>
                     </div>
                   </div>
 
@@ -167,6 +180,15 @@ export default function SettleItPage() {
             </div>
           )}
         </div>
+
+        {/* Custom Toast Notification */}
+        {toastMessage && (
+          <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-bottom-8 fade-in duration-300">
+            <div className="bg-[var(--bg-surface)] border-2 border-[var(--brand-primary)]/50 text-[var(--brand-primary)] px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 max-w-md w-full font-bold text-sm text-center">
+              <span>{toastMessage}</span>
+            </div>
+          </div>
+        )}
       </main>
     </ToolWrapper>
   );

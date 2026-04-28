@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { AuthProvider } from "@/components/AuthProvider";
+import { CircusAlertProvider } from "@/components/CircusAlertProvider";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -17,7 +18,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className={`${inter.className} antialiased`}>
         <AuthProvider>
           <ThemeProvider>
-            {children}
+            <CircusAlertProvider>
+              {children}
+            </CircusAlertProvider>
           </ThemeProvider>
         </AuthProvider>
       </body>

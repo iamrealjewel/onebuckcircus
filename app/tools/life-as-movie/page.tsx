@@ -3,22 +3,39 @@ import { useState } from "react";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import ToolWrapper from "@/components/ToolWrapper";
-import { generateMoviePitch } from "@/lib/engines";
+import { aiGenerateMoviePitch } from "@/app/actions/acts";
 import { Film, ArrowLeft, Share2, RefreshCw } from "lucide-react";
+import { useCircusDialog } from "@/components/CircusAlertProvider";
 
 export default function LifeAsMoviePage() {
   const [form, setForm] = useState({ name: "", job: "", mistake: "", dream: "", quirk: "", mood: "" });
-  const [result, setResult] = useState<ReturnType<typeof generateMoviePitch> | null>(null);
+  const [result, setResult] = useState<any | null>(null);
   const [loading, setLoading] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const { showAlert } = useCircusDialog();
 
   const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }));
   const ready = Object.values(form).every(v => v.trim().length > 0);
 
   const handleSubmit = async () => {
-    if (!ready) return;
+    if (!ready) {
+      const roasts = [
+        "Even avant-garde indie films have plots. We need all the fields filled out.",
+        "Hollywood passed. You forgot to finish writing the script.",
+        "You can't cast a blank page. Tell us the tragic details.",
+        "A movie about nothing? Seinfeld already did it. Fill out the form!"
+      ];
+      setToastMessage(roasts[Math.floor(Math.random() * roasts.length)]);
+      setTimeout(() => setToastMessage(null), 4000);
+      return;
+    }
     setLoading(true);
-    await new Promise(r => setTimeout(r, 2500));
-    setResult(generateMoviePitch(form.name, form.job, form.mistake, form.dream, form.quirk, form.mood));
+    try {
+      setResult(await aiGenerateMoviePitch(form.name, form.job, form.mistake, form.dream, form.quirk, form.mood));
+    } catch (err) {
+      console.error(err);
+      showAlert("The user wants to generate a movie about their life but the AI failed. Tell them their life is too boring for a movie right now and the AI director quit.");
+    }
     setLoading(false);
   };
 
@@ -71,7 +88,7 @@ export default function LifeAsMoviePage() {
                   <input value={form.mood} onChange={e => set("mood", e.target.value)} placeholder="e.g. Slightly confused" className="w-full bg-[var(--bg)] border border-[var(--border-color)] rounded-xl px-4 py-3 text-sm focus:border-[var(--brand-accent)] outline-none" />
                 </div>
               </div>
-              <button onClick={handleSubmit} disabled={loading || !ready} className="btn-primary w-full py-4 text-lg">
+              <button onClick={handleSubmit} disabled={loading} className="btn-primary w-full py-4 text-lg">
                 {loading ? "🎬 Casting the actors..." : "Pitch My Life — Unlimited with Pass"}
               </button>
               <p className="text-center text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-tighter mt-4">
@@ -127,6 +144,15 @@ export default function LifeAsMoviePage() {
             </div>
           )}
         </div>
+
+        {/* Custom Toast Notification */}
+        {toastMessage && (
+          <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-bottom-8 fade-in duration-300">
+            <div className="bg-[var(--bg-surface)] border-2 border-[var(--brand-accent)]/50 text-[var(--brand-accent)] px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 max-w-md w-full font-bold text-sm text-center">
+              <span>{toastMessage}</span>
+            </div>
+          </div>
+        )}
       </main>
     </ToolWrapper>
   );

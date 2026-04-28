@@ -19,9 +19,23 @@ export async function middleware(req: NextRequest) {
     }
   }
 
+  // 3. Protect user routes from unauthenticated users
+  const protectedUserRoutes = ["/settings", "/select-acts", "/circus-pass", "/tools"];
+  if (protectedUserRoutes.some(route => pathname.startsWith(route))) {
+    if (!token) {
+      return NextResponse.redirect(new URL("/auth", req.url));
+    }
+  }
+
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: ["/admin/:path*"],
+  matcher: [
+    "/admin/:path*",
+    "/settings/:path*",
+    "/select-acts/:path*",
+    "/circus-pass/:path*",
+    "/tools/:path*"
+  ],
 };

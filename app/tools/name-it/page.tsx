@@ -3,7 +3,7 @@ import { useState } from "react";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import ToolWrapper from "@/components/ToolWrapper";
-import { generateNames } from "@/lib/engines";
+import { aiGenerateNames } from "@/app/actions/acts";
 import { Sparkles, ArrowLeft, Share2, RefreshCw } from "lucide-react";
 
 const categories = ["Baby", "Pet", "Startup", "Band", "WiFi"];
@@ -13,16 +13,32 @@ export default function NameItPage() {
   const [category, setCategory] = useState("");
   const [personality, setPersonality] = useState("");
   const [style, setStyle] = useState("");
-  const [result, setResult] = useState<ReturnType<typeof generateNames> | null>(null);
+  const [result, setResult] = useState<any | null>(null);
   const [loading, setLoading] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const { showAlert } = useCircusDialog();
 
   const styles = ["Classic", "Playful", "Edgy", "Gentle", "Mysterious"];
 
   const handleSubmit = async () => {
-    if (!thing || !category || !personality || !style) return;
+    if (!thing || !category || !personality || !style) {
+      const roasts = [
+        "The stars are cloudy... mainly because you left half the form blank.",
+        "You want a name for... what exactly? Complete the incantation.",
+        "We are Oracles, not mind readers. Fill it all out.",
+        "Naming an empty void? 'The Void' works, but otherwise fill out the form."
+      ];
+      setToastMessage(roasts[Math.floor(Math.random() * roasts.length)]);
+      setTimeout(() => setToastMessage(null), 4000);
+      return;
+    }
     setLoading(true);
-    await new Promise(r => setTimeout(r, 1600));
-    setResult(generateNames(thing, category, personality, style));
+    try {
+      setResult(await aiGenerateNames(thing, category, personality, style));
+    } catch (err) {
+      console.error(err);
+      showAlert("The user wants to generate names but the AI failed. Tell them their requirements were so weird the Oracle literally gave up and went to sleep.");
+    }
     setLoading(false);
   };
 
@@ -77,7 +93,7 @@ export default function NameItPage() {
                   <input value={personality} onChange={e => setPersonality(e.target.value)} placeholder="e.g. Elegant and subtle" className="w-full bg-[var(--bg)] border border-[var(--border-color)] rounded-xl px-4 py-3 text-sm focus:border-[var(--brand-secondary)] outline-none" />
                 </div>
               </div>
-              <button onClick={handleSubmit} disabled={loading || !thing || !category || !personality || !style} className="btn-primary w-full py-4 text-lg bg-[var(--brand-secondary)]">
+              <button onClick={handleSubmit} disabled={loading} className="btn-primary w-full py-4 text-lg bg-[var(--brand-secondary)]">
                 {loading ? "✨ Consulting the stars..." : "Find Names — Unlimited with Pass"}
               </button>
               <p className="text-center text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-tighter mt-4">
@@ -115,6 +131,15 @@ export default function NameItPage() {
             </div>
           )}
         </div>
+
+        {/* Custom Toast Notification */}
+        {toastMessage && (
+          <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-bottom-8 fade-in duration-300">
+            <div className="bg-[var(--bg-surface)] border-2 border-[var(--brand-secondary)]/50 text-[var(--brand-secondary)] px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 max-w-md w-full font-bold text-sm text-center">
+              <span>{toastMessage}</span>
+            </div>
+          </div>
+        )}
       </main>
     </ToolWrapper>
   );

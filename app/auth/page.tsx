@@ -1,17 +1,97 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Navbar from "@/components/Navbar";
-import { Sparkles, ArrowRight, Lock, UserPlus, LogIn, Mail, MapPin, User as UserIcon, Calendar, CheckCircle2 } from "lucide-react";
+import { Sparkles, ArrowRight, Lock, UserPlus, LogIn, Mail, MapPin, User as UserIcon, Calendar, CheckCircle2, ChevronDown } from "lucide-react";
+import { generateAuthRoast } from "@/app/actions/acts";
 
 export default function AuthPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex flex-col items-center justify-center gap-6 bg-black text-white">
+        <div className="relative">
+          <div className="absolute inset-0 bg-[var(--brand-primary)]/20 rounded-full blur-2xl animate-pulse" />
+          <img 
+            src="/logo-neon.png" 
+            className="w-20 h-20 animate-[spin_4s_linear_infinite] relative z-10" 
+            alt="Loading..." 
+          />
+        </div>
+        <div className="text-[10px] font-black uppercase tracking-[0.4em] text-[var(--brand-primary)] animate-pulse">
+          Summoning the Oracle...
+        </div>
+      </div>
+    }>
+      <AuthContent />
+    </Suspense>
+  );
+}
+
+function AuthContent() {
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [roast, setRoast] = useState<{ roast: string, toggleText: string, forgotPasswordText?: string, popupRoasts?: Array<{emoji: string, text: string}> } | null>(null);
+  const [activePopup, setActivePopup] = useState<{ emoji: string, text: string, x: number, y: number, rotation: number, scale: number } | null>(null);
+  const [roastsEnabled, setRoastsEnabled] = useState(true);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const refCode = searchParams.get("ref");
+  const refToken = searchParams.get("refToken");
+
+  useEffect(() => {
+    if (refCode || refToken) {
+      setMode("signup");
+    }
+  }, [refCode, refToken]);
+
+  useEffect(() => {
+    const checkRoastPref = () => {
+      setRoastsEnabled(localStorage.getItem('roastsEnabled') !== 'false');
+    };
+    checkRoastPref();
+    window.addEventListener('roastToggle', checkRoastPref);
+    return () => window.removeEventListener('roastToggle', checkRoastPref);
+  }, []);
+
+  useEffect(() => {
+    setRoast(null);
+    if (roastsEnabled) {
+      generateAuthRoast(mode).then(setRoast).catch(console.error);
+    }
+  }, [mode, roastsEnabled]);
+
+  useEffect(() => {
+    if (!roastsEnabled || !roast?.popupRoasts?.length) return;
+    
+    const interval = setInterval(() => {
+      // 40% chance to jump scare every 4 seconds
+      if (Math.random() > 0.6) {
+        const randomRoast = roast.popupRoasts![Math.floor(Math.random() * roast.popupRoasts!.length)];
+        
+        // Spawn on the left (15-25%) or right (75-85%) sides to avoid overlapping the center form and the edges
+        const isLeftSide = Math.random() > 0.5;
+        const x = isLeftSide ? Math.random() * 10 + 15 : Math.random() * 10 + 75;
+        
+        // Spawn vertically (20-80%) to avoid cutting off top/bottom
+        const y = Math.random() * 60 + 20;
+        
+        const rotation = Math.random() * 60 - 30; // -30 to +30 deg
+        const scale = Math.random() * 0.5 + 0.8; // 0.8 to 1.3x scale
+        
+        setActivePopup({ ...randomRoast, x, y, rotation, scale });
+        
+        setTimeout(() => {
+          setActivePopup(null);
+        }, 2000); // hide after 2s
+      }
+    }, 4000);
+    
+    return () => clearInterval(interval);
+  }, [roast]);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -41,7 +121,11 @@ export default function AuthPage() {
         const res = await fetch("/api/auth/signup", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(formData)
+          body: JSON.stringify({
+            ...formData,
+            refCode: refCode || undefined,
+            refToken: refToken || undefined
+          })
         });
 
         if (res.ok) {
@@ -72,25 +156,42 @@ export default function AuthPage() {
   };
 
   return (
-    <main className="min-h-screen pt-32 pb-24 px-6 flex flex-col items-center justify-center">
+    <main className="min-h-screen pt-32 pb-24 px-6 flex flex-col items-center justify-center relative overflow-hidden">
+      {/* Random Popup Roast */}
+      {activePopup && (
+        <div 
+          className="fixed z-50 pointer-events-none animate-in zoom-in spin-in duration-300 flex flex-col items-center justify-center drop-shadow-2xl"
+          style={{ 
+            left: `${activePopup.x}%`, 
+            top: `${activePopup.y}%`, 
+            transform: `translate(-50%, -50%) rotate(${activePopup.rotation}deg) scale(${activePopup.scale})` 
+          }}
+        >
+          <div className="text-8xl md:text-9xl filter drop-shadow-[0_0_20px_rgba(255,255,255,0.5)] animate-bounce">{activePopup.emoji}</div>
+          <div className="mt-4 bg-[var(--bg-card)] text-[var(--text-main)] px-6 py-3 rounded-2xl border-4 border-[var(--brand-primary)] font-black text-xl md:text-2xl whitespace-nowrap text-center uppercase tracking-widest rotate-3 shadow-[0_0_30px_var(--brand-primary)]">
+            {activePopup.text}
+          </div>
+        </div>
+      )}
+
       <Navbar />
       
-      <div className="w-full max-w-2xl animate-fade-in">
+      <div className="w-full max-w-2xl animate-fade-in relative z-10">
         <div className="card-glass p-10 md:p-14 text-center relative overflow-hidden">
           {/* Status Notifications */}
           {error && (
-            <div className="absolute top-0 left-0 w-full bg-red-500/20 text-red-500 py-3 text-xs font-black uppercase tracking-widest animate-slide-down z-30">
+            <div className="mb-8 p-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-500 text-sm font-bold animate-in fade-in slide-in-from-top-2 break-words">
               {error}
             </div>
           )}
           {success && (
-            <div className="absolute top-0 left-0 w-full bg-green-500/20 text-green-500 py-3 text-xs font-black uppercase tracking-widest animate-slide-down z-30">
+            <div className="mb-8 p-4 rounded-2xl bg-green-500/10 border border-green-500/20 text-green-500 text-sm font-bold animate-in fade-in slide-in-from-top-2 break-words">
               {success}
             </div>
           )}
 
           {/* Mode Switcher */}
-          <div className="flex p-1.5 bg-[var(--bg-surface)] border border-[var(--border-color)] rounded-2xl mb-12 max-w-xs mx-auto">
+          <div className="flex p-1.5 bg-[var(--bg-surface)] border border-[var(--border-color)] rounded-2xl mb-8 max-w-xs mx-auto hidden">
             <button 
               onClick={() => setMode("login")}
               className={`flex-1 flex items-center justify-center gap-3 py-4 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${mode === "login" ? 'bg-[var(--brand-primary)] text-white shadow-xl' : 'text-[var(--text-muted)] hover:text-white'}`}
@@ -108,9 +209,22 @@ export default function AuthPage() {
           <h1 className="text-5xl md:text-6xl font-black mb-6 tracking-tighter">
             {mode === "login" ? "Step Right Up" : "Join the Circus"}
           </h1>
-          <p className="text-[var(--text-muted)] mb-14 text-lg font-medium max-w-xl mx-auto leading-relaxed">
-            {mode === "login" ? "Welcome back to the beautiful chaos." : "Fill your scroll to become a certified joker."}
-          </p>
+          
+          <div className="min-h-[80px] mb-10 flex items-center justify-center">
+            {!roastsEnabled ? (
+              <p className="text-[var(--text-muted)] text-lg font-medium max-w-xl mx-auto leading-relaxed">
+                {mode === "login" ? "Welcome back. Please enter your credentials." : "Create an account to continue."}
+              </p>
+            ) : roast ? (
+              <p className="text-[var(--brand-accent)] text-lg font-bold max-w-xl mx-auto leading-relaxed animate-in zoom-in duration-500">
+                {roast.roast}
+              </p>
+            ) : (
+              <p className="text-[var(--text-muted)] text-sm font-medium max-w-xl mx-auto animate-pulse flex items-center gap-2 justify-center">
+                <Sparkles size={16} /> The Oracle is judging you...
+              </p>
+            )}
+          </div>
           
           <form onSubmit={handleAuth} className="space-y-8 text-left">
             {/* Single Column Stacked Layout */}
@@ -142,6 +256,17 @@ export default function AuthPage() {
                 />
                 <Lock className="absolute left-5 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" size={24} />
               </div>
+              {mode === "login" && (
+                <div className="flex justify-end px-2">
+                  <button 
+                    type="button" 
+                    onClick={() => router.push("/auth/forgot-password")}
+                    className="text-xs font-bold text-[var(--text-muted)] hover:text-red-400 transition-colors"
+                  >
+                    {roastsEnabled && roast?.forgotPasswordText ? roast.forgotPasswordText : "Forgot Password?"}
+                  </button>
+                </div>
+              )}
             </div>
 
             {mode === "signup" && (
@@ -223,11 +348,24 @@ export default function AuthPage() {
             <button 
               type="submit" 
               disabled={loading}
-              className="btn-primary w-full py-7 text-2xl font-black uppercase tracking-widest flex items-center justify-center gap-4 disabled:opacity-50 shadow-2xl hover:scale-[1.01] transition-all"
+              className="btn-primary w-full py-7 text-2xl font-black uppercase tracking-widest flex items-center justify-center gap-4 disabled:opacity-50 shadow-2xl hover:scale-[1.01] transition-all mt-4"
             >
               {loading ? "Magic in progress..." : mode === "login" ? "Enter the Tent" : "Join the Circus"}
               {!loading && <ArrowRight size={28} />}
             </button>
+
+            <div className="pt-6 border-t border-[var(--border-color)] text-center">
+              <button 
+                type="button"
+                onClick={() => setMode(mode === "login" ? "signup" : "login")}
+                className="text-sm font-bold text-[var(--text-muted)] hover:text-[var(--brand-primary)] transition-colors underline decoration-dashed underline-offset-4"
+              >
+                {!roastsEnabled 
+                  ? (mode === "login" ? "Don't have an account? Sign up" : "Already have an account? Log in")
+                  : (roast ? roast.toggleText : (mode === "login" ? "Actually, I don't have an account... help 🤡" : "Wait, I already have an account! Take me back! 🏃💨"))
+                }
+              </button>
+            </div>
           </form>
         </div>
       </div>
@@ -235,20 +373,3 @@ export default function AuthPage() {
   );
 }
 
-function ChevronDown({ className, size }: { className?: string, size?: number }) {
-  return (
-    <svg 
-      className={className} 
-      width={size} 
-      height={size} 
-      viewBox="0 0 24 24" 
-      fill="none" 
-      stroke="currentColor" 
-      strokeWidth="2" 
-      strokeLinecap="round" 
-      strokeLinejoin="round"
-    >
-      <path d="m6 9 6 6 6-6"/>
-    </svg>
-  );
-}

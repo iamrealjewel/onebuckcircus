@@ -18,8 +18,18 @@ export default function ToolWrapper({
 
   if (status === "loading") {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin text-4xl">🎪</div>
+      <div className="min-h-screen flex flex-col items-center justify-center gap-6 bg-[var(--bg)]">
+        <div className="relative">
+          <div className="absolute inset-0 bg-[var(--brand-primary)]/20 rounded-full blur-2xl animate-pulse" />
+          <img 
+            src="/logo-neon.png" 
+            className="w-20 h-20 animate-[spin_4s_linear_infinite] relative z-10" 
+            alt="Loading..." 
+          />
+        </div>
+        <div className="text-[10px] font-black uppercase tracking-[0.4em] text-[var(--brand-primary)] animate-pulse">
+          Consulting the Oracle...
+        </div>
       </div>
     );
   }

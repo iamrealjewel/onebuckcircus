@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Cpu, Plus, Globe, Trash2, Edit2, Save, X, CheckCircle2, ChevronDown, Sparkles, Wand2, Loader2 } from "lucide-react";
+import { useCircusDialog } from "@/components/CircusAlertProvider";
 
 const PROVIDERS = [
   { 
@@ -50,6 +51,7 @@ export default function AIModelManager({ initialModels }: { initialModels: any[]
   const [discovering, setDiscovering] = useState(false);
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const router = useRouter();
+  const { showConfirm } = useCircusDialog();
 
   const [formData, setFormData] = useState({
     name: "Groq",
@@ -135,18 +137,22 @@ export default function AIModelManager({ initialModels }: { initialModels: any[]
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Permanently remove this Oracle?")) return;
-    setLoading(id);
-    try {
-      const res = await fetch(`/api/admin/ai/${id}`, { method: "DELETE" });
-      if (res.ok) {
-        setModels(models.filter(m => m.id !== id));
-        router.refresh();
+    showConfirm(
+      "The Ringmaster is trying to permanently delete an AI Oracle from the circus. Ask them if they are sure they want to unplug the machine.",
+      async () => {
+        setLoading(id);
+        try {
+          const res = await fetch(`/api/admin/ai/${id}`, { method: "DELETE" });
+          if (res.ok) {
+            setModels(models.filter(m => m.id !== id));
+            router.refresh();
+          }
+        } catch (err) {
+          console.error(err);
+        }
+        setLoading(null);
       }
-    } catch (err) {
-      console.error(err);
-    }
-    setLoading(null);
+    );
   };
 
   const handleSave = async () => {

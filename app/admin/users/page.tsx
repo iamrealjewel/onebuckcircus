@@ -32,7 +32,9 @@ export default async function AdminUsersPage() {
         </div>
       </div>
 
-      <UserTable initialUsers={users} subscriptions={subscriptions} />
+      <div className="space-y-4">
+        <UserTable initialUsers={users.filter(u => u.role !== 'ADMIN')} subscriptions={subscriptions} canEdit={false} />
+      </div>
     </div>
   );
 }

@@ -6,7 +6,7 @@ import { sendVerificationEmail } from "@/lib/mail";
 
 export async function POST(req: Request) {
   try {
-    const { email, password, name, gender, age, address, agree } = await req.json();
+    const { email, password, name, gender, age, address, agree, refCode } = await req.json();
 
     if (!agree) {
       return new NextResponse("You must agree to be a joker!", { status: 400 });
@@ -21,6 +21,19 @@ export async function POST(req: Request) {
     // 2. Hash password
     const hashedPassword = await bcrypt.hash(password, 12);
 
+    const myReferralCode = "JOKER-" + uuidv4().split('-')[0].toUpperCase();
+
+    // Check if refCode is valid
+    let referredByCode = null;
+    let inviterId = null;
+    if (refCode) {
+      const inviter = await prisma.user.findUnique({ where: { referralCode: refCode } });
+      if (inviter) {
+        referredByCode = inviter.referralCode;
+        inviterId = inviter.id;
+      }
+    }
+
     // 3. Create user (unverified)
     const user = await prisma.user.create({
       data: {
@@ -31,8 +44,39 @@ export async function POST(req: Request) {
         age: parseInt(age),
         address,
         emailVerified: null, // Not verified yet
+        referralCode: myReferralCode,
+        referredBy: referredByCode
       }
     });
+
+    // If there was an email invitation, mark it accepted and auto-friend them
+    const invitation = await prisma.emailInvitation.findFirst({
+      where: { email, status: "PENDING" }
+    });
+
+    if (invitation) {
+      await prisma.emailInvitation.update({
+        where: { id: invitation.id },
+        data: { status: "ACCEPTED" }
+      });
+      // Auto create friendship
+      await prisma.friendship.create({
+        data: {
+          userId: invitation.inviterId,
+          friendId: user.id,
+          status: "ACCEPTED"
+        }
+      });
+    } else if (inviterId) {
+      // Auto create friendship with the person who referred them
+      await prisma.friendship.create({
+        data: {
+          userId: inviterId,
+          friendId: user.id,
+          status: "ACCEPTED"
+        }
+      });
+    }
 
     // 4. Generate Verification Token
     const token = uuidv4();

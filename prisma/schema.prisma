@@ -22,11 +22,18 @@ model User {
   accounts         Account[]
   sessions         Session[]
   
-  // Subscription Tracking
+  // Subscriptions & Perks
   subscriptionId   String?
   subscription     Subscription? @relation(fields: [subscriptionId], references: [id])
   subscribedAt     DateTime?
   subscriptionEnd  DateTime?
+  
+  // Growth & Social
+  referralCode     String?   @unique
+  referredBy       String?
+  friendshipsInitiated Friendship[] @relation("UserFriendships")
+  friendshipsReceived  Friendship[] @relation("FriendFriendships")
+  invitationsSent      EmailInvitation[] @relation("UserInvitations")
   
   // For Tiered access (Chaos/Destruction)
   selectedApps     UserActSelection[]
@@ -128,4 +135,42 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  adminId     String
+  adminName   String
+  action      String
+  details     String   @db.Text
+  targetId    String?
+  targetName  String?
+  createdAt   DateTime @default(now())
+}
+
+model Friendship {
+  id        String   @id @default(cuid())
+  userId    String
+  friendId  String
+  status    String   @default("PENDING") // PENDING, ACCEPTED, REJECTED
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  message   String?   @db.Text
+  
+  user      User     @relation("UserFriendships", fields: [userId], references: [id], onDelete: Cascade)
+  friend    User     @relation("FriendFriendships", fields: [friendId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, friendId])
+}
+
+model EmailInvitation {
+  id          String   @id @default(cuid())
+  inviterId   String
+  email       String
+  token       String   @unique
+  status      String   @default("PENDING") // PENDING, ACCEPTED
+  createdAt   DateTime @default(now())
+  message     String?   @db.Text
+  
+  inviter     User     @relation("UserInvitations", fields: [inviterId], references: [id], onDelete: Cascade)
 }

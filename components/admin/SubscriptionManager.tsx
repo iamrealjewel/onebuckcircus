@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Ticket, Trash2, Edit2, CheckCircle2, X, Save } from "lucide-react";
+import { useCircusDialog } from "@/components/CircusAlertProvider";
 
 export default function SubscriptionManager({ initialSubscriptions }: { initialSubscriptions: any[] }) {
   const [subs, setSubs] = useState(initialSubscriptions);
@@ -10,6 +11,7 @@ export default function SubscriptionManager({ initialSubscriptions }: { initialS
   const [editingSub, setEditingSub] = useState<any | null>(null);
   const [loading, setLoading] = useState<string | null>(null);
   const router = useRouter();
+  const { showConfirm } = useCircusDialog();
 
   const [formData, setFormData] = useState({
     name: "",
@@ -21,18 +23,22 @@ export default function SubscriptionManager({ initialSubscriptions }: { initialS
   });
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Remove this ticket tier? This might affect current subscribers.")) return;
-    setLoading(id);
-    try {
-      const res = await fetch(`/api/admin/subscriptions/${id}`, { method: "DELETE" });
-      if (res.ok) {
-        setSubs(subs.filter(s => s.id !== id));
-        router.refresh();
+    showConfirm(
+      "The Ringmaster is trying to permanently delete a subscription tier ticket from the circus. Warn them humorously that this might affect current subscribers and ask for confirmation.",
+      async () => {
+        setLoading(id);
+        try {
+          const res = await fetch(`/api/admin/subscriptions/${id}`, { method: "DELETE" });
+          if (res.ok) {
+            setSubs(subs.filter(s => s.id !== id));
+            router.refresh();
+          }
+        } catch (err) {
+          console.error(err);
+        }
+        setLoading(null);
       }
-    } catch (err) {
-      console.error(err);
-    }
-    setLoading(null);
+    );
   };
 
   const handleSave = async (id?: string) => {

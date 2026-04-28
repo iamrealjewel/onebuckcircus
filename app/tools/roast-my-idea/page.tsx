@@ -3,21 +3,38 @@ import { useState } from "react";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import ToolWrapper from "@/components/ToolWrapper";
-import { roastIdea } from "@/lib/engines";
+import { aiRoastIdea } from "@/app/actions/acts";
 import { Flame, ArrowLeft, Share2, RefreshCw } from "lucide-react";
+import { useCircusDialog } from "@/components/CircusAlertProvider";
 
 export default function RoastMyIdeaPage() {
   const [idea, setIdea] = useState("");
   const [stage, setStage] = useState("");
   const [audience, setAudience] = useState("");
-  const [result, setResult] = useState<ReturnType<typeof roastIdea> | null>(null);
+  const [result, setResult] = useState<any | null>(null);
   const [loading, setLoading] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const { showAlert } = useCircusDialog();
 
   const handleSubmit = async () => {
-    if (!idea || !stage || !audience) return;
+    if (!idea || !stage || !audience) {
+      const roasts = [
+        "The idea is so bad you couldn't even finish writing it down?",
+        "We can't roast an empty plate. Give us the details.",
+        "Did you forget your own startup pitch? Typical.",
+        "VCs would pass on this blank form. And so do we."
+      ];
+      setToastMessage(roasts[Math.floor(Math.random() * roasts.length)]);
+      setTimeout(() => setToastMessage(null), 4000);
+      return;
+    }
     setLoading(true);
-    await new Promise(r => setTimeout(r, 2200));
-    setResult(roastIdea(idea, stage, audience));
+    try {
+      setResult(await aiRoastIdea(idea, stage, audience));
+    } catch (err) {
+      console.error(err);
+      showAlert("The user tried to get their startup idea roasted but the AI failed. Tell them their idea was so bad it literally broke the Oracle's crystal ball.");
+    }
     setLoading(false);
   };
 
@@ -61,7 +78,7 @@ export default function RoastMyIdeaPage() {
                   </div>
                 </div>
               </div>
-              <button onClick={handleSubmit} disabled={loading || !idea || !stage || !audience} className="btn-primary w-full py-4 text-lg bg-[var(--brand-secondary)]">
+              <button onClick={handleSubmit} disabled={loading} className="btn-primary w-full py-4 text-lg bg-[var(--brand-secondary)]">
                 {loading ? "🔥 Heating up the oven..." : "Roast Me — Unlimited with Pass"}
               </button>
               <p className="text-center text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-tighter mt-4">
@@ -117,6 +134,15 @@ export default function RoastMyIdeaPage() {
             </div>
           )}
         </div>
+
+        {/* Custom Toast Notification */}
+        {toastMessage && (
+          <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-bottom-8 fade-in duration-300">
+            <div className="bg-[var(--bg-surface)] border-2 border-[var(--brand-secondary)]/50 text-[var(--brand-secondary)] px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 max-w-md w-full font-bold text-sm text-center">
+              <span>{toastMessage}</span>
+            </div>
+          </div>
+        )}
       </main>
     </ToolWrapper>
   );

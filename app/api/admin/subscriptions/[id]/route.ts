@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
+import { logAdminAction } from "@/lib/audit";
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -14,6 +15,16 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       where: { id },
       data
     });
+    
+    await logAdminAction(
+      (session.user as any).id,
+      session.user.name as string,
+      "UPDATED_SUBSCRIPTION",
+      `Updated ticket tier: ${sub.name}`,
+      sub.id,
+      sub.name
+    );
+    
     return NextResponse.json(sub);
   } catch (error) {
     return new NextResponse("Error updating subscription", { status: 500 });
@@ -26,7 +37,17 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
   if ((session?.user as any)?.role !== "ADMIN") return new NextResponse("Unauthorized", { status: 401 });
 
   try {
-    await prisma.subscription.delete({ where: { id } });
+    const sub = await prisma.subscription.delete({ where: { id } });
+    
+    await logAdminAction(
+      (session.user as any).id,
+      session.user.name as string,
+      "DELETED_SUBSCRIPTION",
+      `Removed ticket tier: ${sub.name}`,
+      id,
+      sub.name
+    );
+    
     return NextResponse.json({ success: true });
   } catch (error) {
     return new NextResponse("Error deleting subscription", { status: 500 });

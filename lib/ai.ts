@@ -53,10 +53,11 @@ export async function getAIResponse(prompt: string, actId?: string) {
       messages: [{ role: "user", content: prompt }]
     } : {
       model: modelName,
+      response_format: { type: "json_object" },
       messages: [
         { 
           role: "system", 
-          content: "You are the Circus Oracle for 'One Buck Circus'. Your responses should be creative, slightly chaotic, very fantastic, and professional. Keep them relatively concise (1-2 paragraphs)." 
+          content: "You are the Circus Oracle for 'One Buck Circus'. You MUST output strictly valid JSON format. Never include unescaped quotes." 
         },
         { role: "user", content: prompt }
       ]
@@ -90,11 +91,6 @@ export async function getAIResponse(prompt: string, actId?: string) {
     };
   } catch (error: any) {
     console.error("[Circus Oracle] Failure:", error.message);
-    // Fallback to a "Chaos" response if the API fails but we want the app to stay alive
-    return {
-      content: `The Oracle is currently clouded by mist: ${error.message}. But know this: chaos always finds a way.`,
-      model: "Chaos Fallback",
-      timestamp: new Date().toISOString()
-    };
+    throw new Error(`The Oracle is currently clouded by mist: ${error.message}.`);
   }
 }

@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
+import { logAdminAction } from "@/lib/audit";
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -22,6 +23,16 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
           data: { isGlobalDefault: false }
         })
       ]);
+      
+      await logAdminAction(
+        (session.user as any).id,
+        session.user.name as string,
+        "SET_DEFAULT_ORACLE",
+        `Set ${updated.name} as the global default Oracle.`,
+        updated.id,
+        updated.name
+      );
+      
       return NextResponse.json(updated);
     }
 
@@ -29,6 +40,16 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       where: { id },
       data
     });
+    
+    await logAdminAction(
+      (session.user as any).id,
+      session.user.name as string,
+      "UPDATED_ORACLE",
+      `Reconfigured Oracle: ${model.name}`,
+      model.id,
+      model.name
+    );
+    
     return NextResponse.json(model);
   } catch (error) {
     console.error(error);
@@ -42,7 +63,17 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
   if ((session?.user as any)?.role !== "ADMIN") return new NextResponse("Unauthorized", { status: 401 });
 
   try {
-    await prisma.aIModel.delete({ where: { id } });
+    const model = await prisma.aIModel.delete({ where: { id } });
+    
+    await logAdminAction(
+      (session.user as any).id,
+      session.user.name as string,
+      "DELETED_ORACLE",
+      `Permanently unplugged Oracle: ${model.name}`,
+      model.id,
+      model.name
+    );
+    
     return NextResponse.json({ success: true });
   } catch (error) {
     return new NextResponse("Error deleting AI model", { status: 500 });
