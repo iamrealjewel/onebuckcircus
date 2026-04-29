@@ -1,11 +1,13 @@
 "use client";
 
 import { useState } from "react";
+import { signIn, useSession } from "next-auth/react";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import { ArrowRight, Sparkles, Swords } from "lucide-react";
 
 export default function LandingClient({ tools }: any) {
+  const { data: session } = useSession();
   const [activeTab, setActiveTab] = useState<'ACTS' | 'GAMES'>('ACTS');
 
   return (
@@ -37,8 +39,8 @@ export default function LandingClient({ tools }: any) {
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
-            <Link href="/auth" className="btn-primary text-xl px-12 py-5">
-              🎪 Enter the Tent
+            <Link href={session ? "/" : "/auth"} className="btn-primary text-xl px-12 py-5">
+              {session ? "🎪 Go to Dashboard" : "🎪 Enter the Tent"}
             </Link>
             <Link href="#tools" className="btn-outline text-xl px-12 py-5">
               Browse Acts
@@ -142,8 +144,8 @@ export default function LandingClient({ tools }: any) {
                   <div className="text-4xl font-black mb-8 text-[#facc15]">
                     $5 <span className="text-sm font-normal text-[var(--text-muted)]">/ month</span>
                   </div>
-                  <Link href="/auth" className="btn-primary w-full block text-center !bg-[#facc15] !text-black shadow-lg shadow-[#facc15]/20">
-                    Get Unlimited Access
+                  <Link href={session ? "/circus-pass" : "/auth"} className="btn-primary w-full block text-center !bg-[#facc15] !text-black shadow-lg shadow-[#facc15]/20">
+                    {session ? "Upgrade to Unlimited" : "Get Unlimited Access"}
                   </Link>
                 </div>
               </div>

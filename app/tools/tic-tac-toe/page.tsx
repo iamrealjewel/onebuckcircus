@@ -301,11 +301,11 @@ export default function TicTacToePage() {
   };
 
   const isBalling = phase === 'BATTLE';
+  const isUserP1 = userId === duelData?.player1Id || !duelId;
   const p1 = { ...currentStats, avatarId: selectedAvatarId };
   const p2 = mode === 'ORACLE' ? { name: "The Oracle", points: 2000, avatarId: 'warlord' } : (duelData?.player2 || { name: "Opponent", points: 0, avatarId: 'shieldmaiden' });
   const p1Avatar = isUserP1 ? selectedAvatarId : (duelData?.player1?.preferredAvatar || 'warlord');
   const p2Avatar = !isUserP1 ? selectedAvatarId : (mode === 'ORACLE' ? 'warlord' : (duelData?.player2?.preferredAvatar || 'shieldmaiden'));
-  const isUserP1 = userId === duelData?.player1Id || !duelId;
   const iWon = winner === (isUserP1 ? "X" : "O");
   const iLost = winner && winner !== "draw" && !iWon;
   const isDraw = winner === "draw";

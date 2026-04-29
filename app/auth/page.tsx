@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, Suspense } from "react";
-import { signIn } from "next-auth/react";
+import { signIn, useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import { Sparkles, ArrowRight, Lock, UserPlus, LogIn, Mail, MapPin, User as UserIcon, Calendar, CheckCircle2, ChevronDown } from "lucide-react";
@@ -37,10 +37,18 @@ function AuthContent() {
   const [roast, setRoast] = useState<{ roast: string, toggleText: string, forgotPasswordText?: string, popupRoasts?: Array<{emoji: string, text: string}> } | null>(null);
   const [activePopup, setActivePopup] = useState<{ emoji: string, text: string, x: number, y: number, rotation: number, scale: number } | null>(null);
   const [roastsEnabled, setRoastsEnabled] = useState(true);
+  const { data: session, status } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
   const refCode = searchParams.get("ref");
   const refToken = searchParams.get("refToken");
+
+  // REDIRECT IF ALREADY LOGGED IN
+  useEffect(() => {
+    if (status === "authenticated") {
+      router.push("/");
+    }
+  }, [status, router]);
 
   useEffect(() => {
     if (refCode || refToken) {
