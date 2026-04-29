@@ -47,7 +47,7 @@ export async function POST(req: Request) {
         data: selectedIds.map((actId: string) => ({
           userId,
           actId,
-          canChangeAfter: new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000) // 30 days
+          canChangeAfter: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000) // 7 days
         }))
       })
     ]);

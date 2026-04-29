@@ -159,13 +159,13 @@ export default function CircusPassPage() {
           <div className="mt-10 inline-flex items-center p-1 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl">
             <button 
               onClick={() => setBillingCycle("monthly")}
-              className={`px-8 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${billingCycle === "monthly" ? 'bg-[var(--brand-primary)] text-white shadow-lg' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'}`}
+              className={`px-8 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${billingCycle === "monthly" ? 'bg-[var(--brand-primary)] text-[var(--brand-primary-fg)] shadow-lg' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'}`}
             >
               Monthly
             </button>
             <button 
               onClick={() => setBillingCycle("yearly")}
-              className={`px-8 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${billingCycle === "yearly" ? 'bg-[var(--brand-primary)] text-white shadow-lg' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'}`}
+              className={`px-8 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${billingCycle === "yearly" ? 'bg-[var(--brand-primary)] text-[var(--brand-primary-fg)] shadow-lg' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'}`}
             >
               Yearly <span className="ml-1 text-[8px] opacity-70">(2 Months Free)</span>
             </button>

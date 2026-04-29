@@ -147,7 +147,7 @@ function SidebarLink({ href, icon, label, active }: { href: string; icon: React.
       href={href} 
       className={`flex items-center justify-between group px-5 py-2.5 rounded-2xl text-sm font-bold transition-all relative overflow-hidden ${
         active 
-          ? 'bg-[var(--brand-primary)] text-white shadow-xl shadow-[var(--brand-primary)]/20' 
+          ? 'bg-[var(--brand-primary)] text-[var(--brand-primary-fg)] shadow-xl shadow-[var(--brand-primary)]/20' 
           : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--bg-surface)]'
       }`}
     >

@@ -28,7 +28,7 @@ async function main() {
       priceMonthly: 1.0,
       priceYearly: 10.0,
       maxActs: 3,
-      features: JSON.stringify(["Unlimited use of 3 selected acts", "Basic support", "Standard AI response"]),
+      features: JSON.stringify(["Unlimited use of 3 selected acts", "Free RoastBuddy Access", "Basic support", "Standard AI response"]),
     },
     {
       name: "Destruction",
@@ -36,7 +36,7 @@ async function main() {
       priceMonthly: 2.0,
       priceYearly: 20.0,
       maxActs: 5,
-      features: JSON.stringify(["Unlimited use of 5 selected acts", "Priority support", "Faster AI response"]),
+      features: JSON.stringify(["Unlimited use of 5 selected acts", "Free RoastBuddy Access", "Priority support", "Faster AI response"]),
     },
     {
       name: "Annihilation",
@@ -44,7 +44,7 @@ async function main() {
       priceMonthly: 5.0,
       priceYearly: 50.0,
       maxActs: -1,
-      features: JSON.stringify(["All acts unlocked", "VIP support", "Premium AI models", "Early access to new acts"]),
+      features: JSON.stringify(["All acts unlocked", "Free RoastBuddy Access", "VIP support", "Premium AI models", "Early access to new acts"]),
     },
   ];
 

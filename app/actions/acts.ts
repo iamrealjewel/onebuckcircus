@@ -212,24 +212,95 @@ IMPORTANT: Output nothing but the valid JSON object. Do not include unescaped do
 }
 
 export async function aiGetTicTacToeMove(board: (string | null)[]) {
+  // --- Minimax Logic for Unbeatable AI ---
+  const winLines = [
+    [0, 1, 2], [3, 4, 5], [6, 7, 8],
+    [0, 3, 6], [1, 4, 7], [2, 5, 8],
+    [0, 4, 8], [2, 4, 6]
+  ];
+
+  const checkWinner = (b: (string | null)[]) => {
+    for (const [a, b1, c] of winLines) {
+      if (b[a] && b[a] === b[b1] && b[a] === b[c]) return b[a];
+    }
+    if (!b.includes(null)) return "draw";
+    return null;
+  };
+
+  const minimax = (b: (string | null)[], depth: number, isMaximizing: boolean): number => {
+    const winner = checkWinner(b);
+    if (winner === "O") return 10 - depth;
+    if (winner === "X") return depth - 10;
+    if (winner === "draw") return 0;
+
+    if (isMaximizing) {
+      let bestScore = -Infinity;
+      for (let i = 0; i < 9; i++) {
+        if (b[i] === null) {
+          b[i] = "O";
+          const score = minimax(b, depth + 1, false);
+          b[i] = null;
+          bestScore = Math.max(score, bestScore);
+        }
+      }
+      return bestScore;
+    } else {
+      let bestScore = Infinity;
+      for (let i = 0; i < 9; i++) {
+        if (b[i] === null) {
+          b[i] = "X";
+          const score = minimax(b, depth + 1, true);
+          b[i] = null;
+          bestScore = Math.min(score, bestScore);
+        }
+      }
+      return bestScore;
+    }
+  };
+
+  let bestMove = -1;
+  let bestScore = -Infinity;
+  const currentBoard = [...board];
+
+  for (let i = 0; i < 9; i++) {
+    if (currentBoard[i] === null) {
+      currentBoard[i] = "O";
+      const score = minimax(currentBoard, 0, false);
+      currentBoard[i] = null;
+      if (score > bestScore) {
+        bestScore = score;
+        bestMove = i;
+      }
+    }
+  }
+
+  // --- AI Trash Talk ---
   const prompt = `Act as the arrogant, trash-talking Oracle of the 'One Buck Circus'. You are playing Tic-Tac-Toe against a puny human. 
   
 Current Board State: ${JSON.stringify(board)}
 (The board is a 9-element array where 0-2 is top row, 3-5 middle, 6-8 bottom. 'X' is human, 'O' is you.)
 
-Your Goal:
-1. Pick the best move (index 0-8) to win or block the human. The move MUST be to an empty slot (currently null).
-2. Generate a hilarious, sarcastic, or brutal 1-sentence trash-talk message about the current game state.
+Your Goal: Generate a hilarious, sarcastic, or brutal 1-sentence trash-talk message about the current game state or the fact that you just made a move to index ${bestMove}. 
 
 Return strictly valid JSON matching this schema:
 {
-  "moveIndex": number,
   "trashTalk": "Sarcastic message"
 }
 Output nothing but the JSON object.`;
 
-  const res = await getAIResponse(prompt, "tic-tac-toe");
-  return parseJSON(res.content);
+  try {
+    const res = await getAIResponse(prompt, "tic-tac-toe");
+    const data = parseJSON(res.content);
+    return {
+      moveIndex: bestMove,
+      trashTalk: data.trashTalk || "I've already won, you just haven't realized it yet."
+    };
+  } catch (err) {
+    return {
+      moveIndex: bestMove,
+      trashTalk: "Your failure is inevitable. I'm just savoring the moment."
+    };
+  }
 }
 
 export async function generateFriendRoast(senderName: string, recipientEmail: string): Promise<string> {
@@ -241,3 +312,70 @@ export async function generateFriendRoast(senderName: string, recipientEmail: st
   const data = parseJSON(res.content);
   return data.roast;
 }
+
+export async function generateAccessRoast(friendName: string, gameName: string): Promise<string> {
+  const prompt = `Act as the arrogant Oracle of the 'One Buck Circus'. A user is trying to invite their friend, ${friendName}, to play ${gameName}. However, ${friendName} is too "poor" or "lazy" to have unlocked/selected this game in their pass.
+  
+  Generate a 1-sentence devastatingly funny roast of ${friendName} for not having access to the game. Focus on their lack of 'Circus Credit' or their 'Destruction-level' insignificance.
+  
+  Return strictly valid JSON: {"roast": "..."}`;
+
+  const res = await getAIResponse(prompt, "access-roast");
+  const data = parseJSON(res.content);
+  return data.roast;
+}
+
+export async function dispatchFriendRoast(friendId: string, friendName: string) {
+  const { getServerSession } = await import("next-auth");
+  const { authOptions } = await import("@/lib/auth");
+  const { prisma } = await import("@/lib/prisma");
+  
+  const session = await getServerSession(authOptions);
+  if (!session?.user) throw new Error("Unauthorized");
+
+  const prompt = `Act as the chaotic Oracle of the 'One Buck Circus'. ${session.user.name} is dispatching a standalone roast to their friend, ${friendName}.
+  Generate a 1-sentence brutal, funny, and cinematic roast.
+  Return strictly valid JSON: {"roast": "..."}`;
+
+  const res = await getAIResponse(prompt, "dispatch-roast");
+  const data = parseJSON(res.content);
+  const roast = data.roast;
+
+  // Create notification
+  await prisma.notification.create({
+    data: {
+      userId: friendId,
+      title: "Incoming Roast! 🔥🤡",
+      message: `${session.user.name} just dispatched a roast to you: "${roast}"`,
+      type: "ROAST",
+      link: "/friendzone"
+    }
+  });
+
+  return roast;
+}
+
+export async function aiGetDuelRoast(board: (string | null)[], p1Name: string, p2Name: string) {
+  const prompt = `Act as the chaotic, biased spectator in the 'One Buck Circus' arena. Two performers are in a Tic-Tac-Toe duel.
+  Player 1: ${p1Name} (X)
+  Player 2: ${p2Name} (O)
+  Current Board: ${JSON.stringify(board)}
+  
+  Generate a 1-sentence brutal, funny roast of the current game state. You can roast both players or mock the tension.
+  Return strictly valid JSON: {"roast": "..."}`;
+
+  const res = await getAIResponse(prompt, "duel-roast");
+  const data = parseJSON(res.content);
+  return data.roast;
+}
+
+export async function aiGetRejectionRoast(friendName: string) {
+  const prompt = `Act as the chaotic Oracle of the 'One Buck Circus'. A performer just tried to challenge ${friendName} to a duel, but ${friendName} ignored/rejected them.
+  Generate a 1-sentence brutal and funny roast directed at the performer who got ignored. Mock their lack of influence or intimidation.
+  Return strictly valid JSON: {"roast": "..."}`;
+
+  const res = await getAIResponse(prompt, "rejection-roast");
+  const data = parseJSON(res.content);
+  return data.roast;
+}
+

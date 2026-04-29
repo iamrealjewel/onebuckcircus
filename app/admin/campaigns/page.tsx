@@ -28,19 +28,19 @@ export default function AdminCampaignsPage() {
       {/* Stats Overview */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="card-glass p-6 border-blue-500/20 bg-blue-500/5">
-          <div className="text-[10px] font-black uppercase tracking-widest text-blue-400 mb-2">Total Reach</div>
+          <div className="text-[10px] font-black uppercase tracking-widest text-blue-600 dark:text-blue-400 mb-2">Total Reach</div>
           <div className="text-3xl font-black">65.7k</div>
-          <div className="text-[10px] text-blue-400/70 font-bold mt-2">+12.4% from last month</div>
+          <div className="text-[10px] text-blue-600/70 dark:text-blue-400/70 font-bold mt-2">+12.4% from last month</div>
         </div>
         <div className="card-glass p-6 border-purple-500/20 bg-purple-500/5">
-          <div className="text-[10px] font-black uppercase tracking-widest text-purple-400 mb-2">Avg. Conversion</div>
+          <div className="text-[10px] font-black uppercase tracking-widest text-purple-600 dark:text-purple-400 mb-2">Avg. Conversion</div>
           <div className="text-3xl font-black">11.9%</div>
-          <div className="text-[10px] text-purple-400/70 font-bold mt-2">+2.1% from last month</div>
+          <div className="text-[10px] text-purple-600/70 dark:text-purple-400/70 font-bold mt-2">+2.1% from last month</div>
         </div>
         <div className="card-glass p-6 border-green-500/20 bg-green-500/5">
-          <div className="text-[10px] font-black uppercase tracking-widest text-green-400 mb-2">Active Recruits</div>
+          <div className="text-[10px] font-black uppercase tracking-widest text-green-600 dark:text-green-400 mb-2">Active Recruits</div>
           <div className="text-3xl font-black">4,521</div>
-          <div className="text-[10px] text-green-400/70 font-bold mt-2">+156 this week</div>
+          <div className="text-[10px] text-green-600/70 dark:text-green-400/70 font-bold mt-2">+156 this week</div>
         </div>
       </div>
 

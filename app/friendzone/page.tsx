@@ -5,7 +5,13 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import { useCircusDialog } from "@/components/CircusAlertProvider";
-import { Users, UserPlus, Mail, CheckCircle2, XCircle, Share2, Copy, Loader2 } from "lucide-react";
+import { 
+  Users, UserPlus, Mail, CheckCircle2, XCircle, Share2, 
+  Copy, Loader2, Swords, Flame, MessageSquare, ExternalLink,
+  ShieldCheck, Zap, Sparkles, Trophy, Ghost
+} from "lucide-react";
+import Link from "next/link";
+import { dispatchFriendRoast } from "@/app/actions/acts";
 
 export default function FriendzonePage() {
   const [data, setData] = useState<{
@@ -23,6 +29,7 @@ export default function FriendzonePage() {
   const [loading, setLoading] = useState(true);
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviting, setInviting] = useState(false);
+  const [actionStatus, setActionStatus] = useState<Record<string, 'challenging' | 'roasting' | null>>({});
   const { showAlert } = useCircusDialog();
 
   useEffect(() => {
@@ -51,8 +58,11 @@ export default function FriendzonePage() {
 
   if (status === "loading" || status === "unauthenticated") {
     return (
-      <main className="min-h-screen bg-[var(--bg-surface)] flex items-center justify-center">
-        <Loader2 className="animate-spin text-[var(--brand-primary)]" size={48} />
+      <main className="min-h-screen bg-[var(--bg)] flex items-center justify-center">
+        <div className="relative flex flex-col items-center">
+          <Loader2 className="animate-spin text-[var(--brand-primary)] mb-4" size={48} />
+          <p className="text-[10px] font-black uppercase tracking-[0.5em] animate-pulse">Summoning the Crew...</p>
+        </div>
       </main>
     );
   }
@@ -74,14 +84,14 @@ export default function FriendzonePage() {
       try { const json = JSON.parse(text); msg = json.message; } catch {}
 
       if (res.ok) {
-        showAlert("You've successfully dragged someone into this mess. The Oracle is pleased.");
+        showAlert("Recruitment scroll dispatched. Another soul lured into the tent.");
         setInviteEmail("");
         fetchData();
       } else {
-        showAlert(`Invitation Failed: ${msg}. They were too smart for you.`);
+        showAlert(`Oracle's Rejection: ${msg}`);
       }
     } catch (err) {
-      showAlert("The Oracle dropped your scroll. Probably because you have weak hands.");
+      showAlert("The pigeon died in transit. Try again.");
     }
     setInviting(false);
   };
@@ -95,217 +105,391 @@ export default function FriendzonePage() {
       });
       
       if (res.ok) {
-        showAlert(action === "ACCEPT" ? "Welcome to the circus, together! misery loves company." : "Rejected. They were probably boring anyway, like you.");
+        showAlert(action === "ACCEPT" ? "Welcome to the crew! Misery loves company." : "Discarded like a bad juggling pin.");
         fetchData();
       } else {
-        showAlert(`Error: ${await res.text()}. Even the servers hate you.`);
+        showAlert(`Error: ${await res.text()}`);
       }
     } catch (err) {
-      showAlert("Failed to process request. The circus is on strike.");
+      showAlert("Failed to process request. The Ringmaster is busy.");
     }
+  };
+
+  const handleChallenge = async (friend: any) => {
+    setActionStatus(prev => ({ ...prev, [friend.id]: 'challenging' }));
+    try {
+      const res = await fetch("/api/friends/invite", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: friend.email, actId: "tic-tac-toe" })
+      });
+      
+      if (res.ok) {
+        showAlert(`Arena Summon dispatched to ${friend.name || friend.email}. Prepare for combat.`);
+      } else {
+        const text = await res.text();
+        showAlert(`Challenge Failed: ${text}`);
+      }
+    } catch (err) {
+      showAlert("The arena gates are jammed. Try later.");
+    }
+    setActionStatus(prev => ({ ...prev, [friend.id]: null }));
+  };
+
+  const handleRoast = async (friend: any) => {
+    setActionStatus(prev => ({ ...prev, [friend.id]: 'roasting' }));
+    try {
+      const roast = await dispatchFriendRoast(friend.id, friend.name || friend.email);
+      showAlert(`Roast Dispatched: "${roast}"`);
+    } catch (err) {
+      showAlert("The roast was too spicy for the server to handle.");
+    }
+    setActionStatus(prev => ({ ...prev, [friend.id]: null }));
   };
 
   const copyReferral = () => {
     if (data?.referralCode) {
       navigator.clipboard.writeText(`${window.location.origin}/auth?ref=${data.referralCode}`);
-      showAlert("Link Copied! Spam this link everywhere. The Oracle demands fresh sacrifices.");
+      showAlert("Recruitment Link Copied! Spread the madness.");
+    }
+  };
+
+  const getTierIcon = (tier?: string) => {
+    switch (tier) {
+      case "ANNIHILATION": return <Trophy className="text-purple-500" size={14} />;
+      case "DESTRUCTION": return <Zap className="text-orange-500" size={14} />;
+      case "CHAOS": return <Sparkles className="text-blue-500" size={14} />;
+      default: return <Users className="text-gray-500" size={14} />;
+    }
+  };
+
+  const getTierColor = (tier?: string) => {
+    switch (tier) {
+      case "ANNIHILATION": return "from-purple-600/20 to-pink-600/20 border-purple-500/30 text-purple-400";
+      case "DESTRUCTION": return "from-orange-600/20 to-yellow-600/20 border-orange-500/30 text-orange-400";
+      case "CHAOS": return "from-blue-600/20 to-cyan-600/20 border-blue-500/30 text-blue-400";
+      default: return "from-gray-600/10 to-gray-800/10 border-gray-500/20 text-gray-400";
     }
   };
 
   return (
-    <main className="min-h-screen bg-[var(--bg-surface)] pt-24 pb-12 px-6 lg:px-12">
+    <main className="min-h-screen bg-[var(--bg)] pt-16 pb-12 px-4 lg:px-10 overflow-x-hidden relative">
+      {/* Decorative background elements */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
+        <div className="absolute top-[-10%] right-[-10%] w-[50%] h-[50%] bg-[var(--brand-primary)]/5 blur-[120px] rounded-full" />
+        <div className="absolute bottom-[-10%] left-[-10%] w-[40%] h-[40%] bg-[var(--brand-secondary)]/5 blur-[100px] rounded-full" />
+      </div>
+
       <Navbar />
       
-      <div className="w-full mx-auto space-y-12 animate-fade-in">
+      <div className="relative z-10 w-full max-w-full mx-auto space-y-16">
         
-        {/* Header section */}
-        <div className="text-center space-y-4">
-          <h1 className="text-5xl md:text-6xl font-black tracking-tighter">The Friendzone</h1>
-          <p className="text-[var(--text-muted)] text-lg font-medium max-w-2xl mx-auto">
-            Drag your friends into the circus. For every 3 victims you successfully recruit, the Oracle will grant you premium access to Chaos.
+        {/* HERO SECTION */}
+        <div className="relative text-center py-6 px-4 space-y-6">
+          <div className="inline-flex items-center gap-3 px-4 py-1.5 rounded-full bg-white/5 border border-white/10 text-[10px] font-black uppercase tracking-[0.3em] backdrop-blur-sm animate-in fade-in slide-in-from-top-4 duration-700">
+             <Users size={14} className="text-[var(--brand-primary)]" /> The Social Spectacle
+          </div>
+          <h1 className="text-6xl md:text-8xl font-black tracking-tighter uppercase leading-[0.8] animate-in fade-in slide-in-from-bottom-4 duration-700">
+             The <span className="gradient-text italic">Friendzone</span>
+          </h1>
+          <p className="text-[var(--text-muted)] text-lg font-bold max-w-2xl mx-auto leading-relaxed animate-in fade-in slide-in-from-bottom-6 duration-1000">
+             Drag your victims into the tent. Recruit <span className="text-[var(--brand-primary)]">3 souls</span> to unlock the **Chaos Tier** for free. Forever.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           
-          {/* Left Column: Invite & Referrals */}
-          <div className="lg:col-span-1 space-y-8">
-            <div className="card-glass p-8">
-              <div className="flex items-center gap-3 mb-6">
-                <UserPlus className="text-[var(--brand-primary)]" size={24} />
-                <h2 className="text-2xl font-black">Summon a Victim</h2>
+          {/* LEFT: Recruitment & Growth */}
+          <div className="lg:col-span-4 space-y-8 lg:sticky lg:top-24">
+            <div className="card-glass p-8 border-t-4 border-t-[var(--brand-primary)] animate-in fade-in slide-in-from-left-4 duration-700">
+              <div className="flex items-center gap-3 mb-8">
+                 <div className="w-10 h-10 rounded-2xl bg-[var(--brand-primary)]/10 flex items-center justify-center text-[var(--brand-primary)]">
+                    <UserPlus size={20} />
+                 </div>
+                 <h2 className="text-2xl font-black uppercase">Summon</h2>
               </div>
               <form onSubmit={handleInvite} className="space-y-4">
-                <input 
-                  type="email"
-                  value={inviteEmail}
-                  onChange={e => setInviteEmail(e.target.value)}
-                  placeholder="friend@boring.com"
-                  className="w-full bg-[var(--bg)] border border-[var(--border-color)] rounded-xl px-4 py-3 focus:border-[var(--brand-primary)] outline-none transition-all"
-                  required
-                />
+                <div className="relative group">
+                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" size={18} />
+                  <input 
+                    type="email"
+                    value={inviteEmail}
+                    onChange={e => setInviteEmail(e.target.value)}
+                    placeholder="friend@victim.com"
+                    className="w-full bg-[var(--bg)] border border-[var(--border-color)] rounded-2xl pl-12 pr-4 py-4 focus:border-[var(--brand-primary)] outline-none font-bold text-sm"
+                    required
+                  />
+                </div>
                 <button 
                   type="submit" 
                   disabled={inviting || !inviteEmail}
-                  className="btn-primary w-full py-4 text-sm disabled:opacity-50"
+                  className="btn-primary w-full py-4 text-xs font-black uppercase tracking-widest disabled:opacity-50"
                 >
-                  {inviting ? "Summoning..." : "Send Invitation"}
+                  {inviting ? "Summoning..." : "Dispatched Scroll"}
                 </button>
               </form>
             </div>
 
-            <div className="card-glass p-8 bg-[var(--brand-primary)]/5 border-[var(--brand-primary)]/20">
-              <div className="flex items-center gap-3 mb-6">
-                <Share2 className="text-[var(--brand-primary)]" size={24} />
-                <h2 className="text-2xl font-black">Your Growth Loop</h2>
+            <div className="card-glass p-8 relative overflow-hidden group animate-in fade-in slide-in-from-left-4 duration-1000 delay-100">
+              <div className="flex items-center gap-3 mb-8">
+                <div className="w-10 h-10 rounded-2xl bg-[var(--brand-secondary)]/10 flex items-center justify-center text-[var(--brand-secondary)]">
+                   <Share2 size={20} />
+                </div>
+                <h2 className="text-2xl font-black uppercase">Recruits</h2>
               </div>
-              <div className="space-y-6">
+              <div className="space-y-8">
                 <div>
-                  <label className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">Your Personal Link</label>
-                  <div className="flex items-center gap-2 mt-2">
-                    <code className="flex-1 bg-[var(--bg)] border border-[var(--border-color)] p-3 rounded-lg text-xs truncate">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] mb-2 block">Your Link</label>
+                  <div className="flex items-center gap-2 p-2 bg-[var(--bg)] border border-[var(--border-color)] rounded-2xl">
+                    <code className="flex-1 text-[10px] font-bold px-3 truncate opacity-60">
                       {data?.referralCode ? `...?ref=${data.referralCode}` : "Loading..."}
                     </code>
-                    <button onClick={copyReferral} className="p-3 bg-[var(--bg-surface)] border border-[var(--border-color)] rounded-lg hover:text-[var(--brand-primary)] transition-colors">
-                      <Copy size={16} />
+                    <button onClick={copyReferral} className="p-3 hover:text-[var(--brand-primary)] transition-all">
+                      <Copy size={14} />
                     </button>
                   </div>
                 </div>
-
-                <div className="pt-6 border-t border-[var(--border-color)]">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-sm font-bold">Successful Recruits</span>
-                    <span className="text-2xl font-black text-[var(--brand-primary)]">{data?.referralsCount || 0}</span>
+                <div className="pt-8 border-t border-[var(--border-color)]">
+                  <div className="flex justify-between items-center mb-4">
+                    <span className="text-lg font-black uppercase">Chaos Unlock</span>
+                    <span className="text-3xl font-black text-[var(--brand-primary)]">
+                      {data?.referralsCount || 0}/3
+                    </span>
                   </div>
-                  <div className="w-full bg-[var(--bg)] h-3 rounded-full overflow-hidden">
+                  <div className="w-full bg-[var(--bg)] h-4 rounded-full p-1 border border-[var(--border-color)]">
                     <div 
-                      className="bg-[var(--brand-primary)] h-full transition-all duration-1000"
+                      className="bg-gradient-to-r from-[var(--brand-primary)] to-[var(--brand-secondary)] h-full rounded-full transition-all duration-1000"
                       style={{ width: `${Math.min(((data?.referralsCount || 0) / 3) * 100, 100)}%` }}
                     />
                   </div>
-                  <p className="text-[10px] font-bold text-[var(--text-muted)] mt-2 text-right">
-                    {data?.referralsCount && data.referralsCount >= 3 ? "Chaos Unlocked!" : `${3 - (data?.referralsCount || 0)} more to unlock Chaos`}
-                  </p>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Right Column: Friends Lists */}
-          <div className="lg:col-span-2 space-y-8">
+          {/* RIGHT: Social Feed & Management */}
+          <div className="lg:col-span-8 space-y-12">
             
-            {/* Pending Received */}
-            {data?.pendingReceived && data.pendingReceived.length > 0 && (
-              <div className="card-glass p-8 border-yellow-500/30">
-                <h2 className="text-2xl font-black mb-6 flex items-center gap-3">
-                  <span className="w-3 h-3 rounded-full bg-yellow-500 animate-pulse" />
-                  Pending Requests
-                </h2>
-                <div className="space-y-4">
-                  {data.pendingReceived.map(req => (
-                    <div key={req.id} className="flex items-center justify-between p-4 bg-[var(--bg)] rounded-xl border border-[var(--border-color)]">
-                      <div>
-                        <div className="font-bold">{req.user.name || "Anonymous Clown"}</div>
-                        <div className="text-xs text-[var(--text-muted)] mb-2">{req.user.email}</div>
-                        {req.message && (
-                          <div className="text-[10px] italic text-[var(--brand-accent)] bg-[var(--brand-accent)]/5 p-2 rounded-lg border border-[var(--brand-accent)]/10">
-                            "{req.message}"
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex gap-2">
-                        <button onClick={() => handleResponse(req.id, "ACCEPT")} className="p-2 bg-green-500/10 text-green-500 rounded-lg hover:bg-green-500 hover:text-white transition-colors" title="Accept">
-                          <CheckCircle2 size={20} />
-                        </button>
-                        <button onClick={() => handleResponse(req.id, "REJECT")} className="p-2 bg-red-500/10 text-red-500 rounded-lg hover:bg-red-500 hover:text-white transition-colors" title="Reject">
-                          <XCircle size={20} />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
+            {/* 1. SOCIAL COMMAND CONSOLE */}
+            <div className="space-y-8">
+              <div className="flex items-center gap-6">
+                <div className="flex items-center gap-3">
+                   <div className="w-2 h-8 bg-[var(--brand-primary)] rounded-full" />
+                   <h2 className="text-3xl font-black uppercase italic tracking-tighter">Social Command</h2>
                 </div>
+                <div className="h-px flex-1 bg-gradient-to-r from-[var(--border-color)] to-transparent" />
               </div>
-            )}
 
-            {/* Active Friends */}
-            <div className="card-glass p-8">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-black flex items-center gap-3">
-                  <Users className="text-[var(--brand-primary)]" size={24} />
-                  Your Circus Crew
-                </h2>
-                <span className="text-sm font-bold text-[var(--text-muted)] bg-[var(--bg)] px-3 py-1 rounded-full border border-[var(--border-color)]">
-                  {data?.friends.length || 0}
-                </span>
-              </div>
-              
-              {loading ? (
-                <div className="text-center p-8 text-[var(--text-muted)] animate-pulse">Loading the clown car...</div>
-              ) : data?.friends && data.friends.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {data.friends.map(friend => (
-                    <div key={friend.id} className="flex items-center gap-4 p-4 bg-[var(--bg)] rounded-xl border border-[var(--border-color)] hover:border-[var(--brand-primary)]/50 transition-colors">
-                      <div className="w-12 h-12 rounded-full bg-[var(--brand-primary)]/20 flex items-center justify-center font-black text-xl text-[var(--brand-primary)]">
-                        {friend.name ? friend.name[0].toUpperCase() : "🤡"}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="font-bold truncate">{friend.name || "Anonymous Clown"}</div>
-                        <div className="text-xs text-[var(--text-muted)] truncate">{friend.email}</div>
-                        <div className="text-[8px] font-black uppercase text-[var(--brand-accent)] mt-1 tracking-widest">
-                          {friend.subscription?.name || "Free Guest"}
+              <div className="grid grid-cols-1 gap-8">
+                {/* INCOMING REQUESTS - High Priority HUD */}
+                {data?.pendingReceived && data.pendingReceived.length > 0 && (
+                  <div className="relative group">
+                    <div className="absolute -inset-1 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 rounded-[32px] blur-xl opacity-50 group-hover:opacity-100 transition-opacity" />
+                    <div className="relative card-glass p-8 border-yellow-500/20 bg-yellow-500/5 backdrop-blur-2xl rounded-[30px] overflow-hidden">
+                      <div className="flex items-center justify-between mb-8">
+                        <div className="flex items-center gap-4">
+                          <div className="relative">
+                            <Users size={20} className="text-yellow-500" />
+                            <div className="absolute -top-1 -right-1 w-2 h-2 bg-yellow-500 rounded-full animate-ping" />
+                          </div>
+                          <h3 className="text-sm font-black uppercase tracking-[0.3em] text-yellow-500/80">Incoming Summoners</h3>
+                        </div>
+                        <div className="px-3 py-1 rounded-full bg-yellow-500/10 border border-yellow-500/20 text-[9px] font-black text-yellow-500 uppercase tracking-widest">
+                          Action Required
                         </div>
                       </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {data.pendingReceived.map(req => (
+                          <div key={req.id} className="p-5 bg-[var(--bg)]/40 border border-white/5 rounded-2xl flex items-center justify-between hover:bg-[var(--bg)]/60 transition-all hover:scale-[1.02] shadow-lg">
+                            <div className="flex items-center gap-4 min-w-0">
+                              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-yellow-500/20 to-orange-500/20 flex items-center justify-center text-yellow-500 font-black text-xl shadow-inner">
+                                {req.user.name?.charAt(0) || "🤡"}
+                              </div>
+                              <div className="truncate">
+                                <h4 className="font-black text-xs uppercase text-white truncate">{req.user.name || "Anonymous"}</h4>
+                                <p className="text-[9px] text-[var(--text-muted)] font-bold truncate mt-0.5">{req.user.email}</p>
+                              </div>
+                            </div>
+                            <div className="flex gap-2">
+                              <button onClick={() => handleResponse(req.id, "ACCEPT")} className="w-10 h-10 flex items-center justify-center bg-green-500/10 text-green-500 rounded-xl hover:bg-green-500 hover:text-white transition-all shadow-sm">
+                                <CheckCircle2 size={18} />
+                              </button>
+                              <button onClick={() => handleResponse(req.id, "REJECT")} className="w-10 h-10 flex items-center justify-center bg-red-500/10 text-red-500 rounded-xl hover:bg-red-500 hover:text-white transition-all shadow-sm">
+                                <XCircle size={18} />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center p-12 bg-[var(--bg)] rounded-2xl border border-[var(--border-color)] border-dashed">
-                  <p className="text-[var(--text-muted)] font-medium mb-4">You have zero friends in the circus.</p>
-                  <p className="text-sm">Use the form on the left to ruin someone's day by inviting them here.</p>
-                </div>
-              )}
+                  </div>
+                )}
+
+                {/* RECRUITMENT LEDGER - Sleek Log style */}
+                {((data?.emailInvitations && data.emailInvitations.length > 0) || (data?.pendingSent && data.pendingSent.length > 0)) && (
+                  <div className="card-glass p-8 bg-white/[0.02] border-white/5 rounded-[30px]">
+                    <div className="flex items-center gap-4 mb-8">
+                       <Mail size={20} className="text-[var(--brand-primary)] opacity-60" />
+                       <h3 className="text-sm font-black uppercase tracking-[0.3em] opacity-60">Recruitment Ledger</h3>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {data?.pendingSent.map(req => (
+                        <div key={req.id} className="flex items-center justify-between p-4 bg-[var(--bg)]/40 border border-white/5 rounded-2xl group hover:border-[var(--brand-primary)]/30 transition-all">
+                           <div className="flex items-center gap-3 min-w-0">
+                              <div className="w-10 h-10 rounded-xl bg-blue-500/5 flex items-center justify-center text-blue-500/60 group-hover:text-blue-500 transition-colors">
+                                 <Users size={16} />
+                              </div>
+                              <div className="flex flex-col truncate">
+                                <span className="truncate font-black text-[10px] uppercase text-white/60 group-hover:text-white transition-colors">{req.friend.name || "Unknown"}</span>
+                                <span className="text-[8px] font-bold text-[var(--text-muted)] truncate">{req.friend.email}</span>
+                              </div>
+                           </div>
+                           <div className="text-[7px] font-black uppercase px-2 py-1 bg-blue-500/5 text-blue-500/60 rounded-md border border-blue-500/10">Awaiting</div>
+                        </div>
+                      ))}
+                      {data?.emailInvitations.map(inv => (
+                        <div key={inv.id} className="flex items-center justify-between p-4 bg-[var(--bg)]/40 border border-white/5 rounded-2xl group hover:border-yellow-500/30 transition-all">
+                           <div className="flex items-center gap-3 min-w-0">
+                              <div className="w-10 h-10 rounded-xl bg-yellow-500/5 flex items-center justify-center text-yellow-500/60 group-hover:text-yellow-500 transition-colors">
+                                 <Zap size={16} />
+                              </div>
+                              <span className="truncate text-[10px] font-black uppercase text-white/40 group-hover:text-white/60 transition-colors">{inv.email}</span>
+                           </div>
+                           <div className="text-[7px] font-black uppercase px-2 py-1 bg-yellow-500/5 text-yellow-500/60 rounded-md border border-yellow-500/10">Sent</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
 
-            {/* Sent Invitations & Pending Internal Requests */}
-            {((data?.emailInvitations && data.emailInvitations.length > 0) || (data?.pendingSent && data.pendingSent.length > 0)) && (
-              <div className="p-6">
-                <h3 className="text-sm font-black uppercase tracking-widest text-[var(--text-muted)] mb-4">Awaiting Responses</h3>
-                <div className="space-y-2">
-                  {/* Internal Requests */}
-                  {data?.pendingSent.map(req => (
-                    <div key={req.id} className="flex flex-col gap-2 bg-[var(--bg-surface)] p-4 rounded-xl border border-[var(--border-color)]">
-                      <div className="flex items-center gap-3 text-sm text-[var(--text-muted)]">
-                        <Users size={16} />
-                        <span className="truncate flex-1 font-bold">{req.friend.name || req.friend.email}</span>
-                        <span className="text-[10px] font-bold uppercase text-blue-500">Request Sent</span>
-                      </div>
-                      {req.message && (
-                        <div className="text-[10px] italic text-[var(--text-muted)] opacity-60">
-                          "{req.message}"
-                        </div>
-                      )}
+            {/* 2. THE CIRCUS CREW - High End Dossier style */}
+            <div className="space-y-10">
+               <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-2xl bg-[var(--brand-primary)]/10 flex items-center justify-center text-[var(--brand-primary)]">
+                       <Users size={24} />
                     </div>
-                  ))}
+                    <h2 className="text-3xl font-black uppercase italic tracking-tighter">Circus Crew</h2>
+                  </div>
+                  <div className="flex items-center gap-3 px-4 py-2 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl shadow-sm">
+                    <div className="flex -space-x-2">
+                       {[1,2,3].map(i => (
+                         <div key={i} className="w-6 h-6 rounded-full border-2 border-[var(--bg-card)] bg-[var(--bg-surface)] flex items-center justify-center text-[8px] font-black">🤡</div>
+                       ))}
+                    </div>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">
+                      {data?.friends.length || 0} Online
+                    </span>
+                  </div>
+               </div>
 
-                  {/* Email Invitations */}
-                  {data?.emailInvitations.map(inv => (
-                    <div key={inv.id} className="flex flex-col gap-2 bg-[var(--bg-surface)] p-4 rounded-xl border border-[var(--border-color)]">
-                      <div className="flex items-center gap-3 text-sm text-[var(--text-muted)]">
-                        <Mail size={16} />
-                        <span className="truncate flex-1">{inv.email}</span>
-                        <span className="text-[10px] font-bold uppercase text-yellow-500">Email Sent</span>
-                      </div>
-                      {inv.message && (
-                        <div className="text-[10px] italic text-[var(--text-muted)] opacity-60">
-                          "{inv.message}"
-                        </div>
-                      )}
-                    </div>
-                  ))}
+               {loading ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                   {[1,2,3,4].map(i => (
+                     <div key={i} className="card-glass h-48 animate-pulse opacity-50" />
+                   ))}
                 </div>
-              </div>
-            )}
+               ) : data?.friends && data.friends.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  {data.friends.map(friend => {
+                    const tier = friend.subscription?.tier || "NONE";
+                    return (
+                      <div key={friend.id} className="group relative">
+                        {/* Dossier Card */}
+                        <div className={`relative card-glass p-6 h-full transition-all duration-500 hover:translate-y-[-8px] hover:shadow-[0_20px_50px_rgba(0,0,0,0.5)] border-t-2 ${tier === 'ANNIHILATION' ? 'border-t-purple-500/50' : tier === 'DESTRUCTION' ? 'border-t-orange-500/50' : tier === 'CHAOS' ? 'border-t-blue-500/50' : 'border-t-[var(--border-color)]'}`}>
+                           
+                           {/* Glow Effect */}
+                           <div className={`absolute top-0 left-1/2 -translate-x-1/2 w-1/2 h-1 blur-xl opacity-0 group-hover:opacity-100 transition-opacity ${tier === 'ANNIHILATION' ? 'bg-purple-500' : tier === 'DESTRUCTION' ? 'bg-orange-500' : 'bg-blue-500'}`} />
 
+                           <div className="flex items-start justify-between">
+                              <div className="flex gap-5">
+                                 {/* Performer Portrait */}
+                                 <div className="relative">
+                                    <div className="w-20 h-20 rounded-[32px] bg-gradient-to-br from-[var(--bg-surface)] to-[var(--bg-card)] border border-[var(--border-color)] flex items-center justify-center text-3xl font-black shadow-2xl relative overflow-hidden group-hover:border-[var(--brand-primary)]/50 transition-all">
+                                       {friend.name ? friend.name[0].toUpperCase() : "🤡"}
+                                       <div className="absolute inset-0 bg-gradient-to-br from-white/0 via-white/[0.03] to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
+                                    </div>
+                                    <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-green-500 border-4 border-[var(--bg-card)] rounded-full shadow-lg shadow-green-500/30" />
+                                 </div>
+
+                                 {/* Performer Metadata */}
+                                 <div className="space-y-3 pt-1">
+                                    <h4 className="text-xl font-black uppercase tracking-tighter text-white leading-none group-hover:text-[var(--brand-primary)] transition-colors">{friend.name || "Anonymous Clown"}</h4>
+                                    <div className="flex flex-col gap-1.5">
+                                       <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg border text-[8px] font-black uppercase tracking-[0.1em] w-fit ${getTierColor(tier)}`}>
+                                          {getTierIcon(tier)} {tier}
+                                       </div>
+                                       <span className="text-[9px] font-bold text-[var(--text-muted)] tracking-tight truncate max-w-[120px]">{friend.email}</span>
+                                    </div>
+                                 </div>
+                              </div>
+
+                              {/* Action HUD */}
+                              <div className="flex flex-col gap-2 pt-1">
+                                 <button 
+                                   onClick={() => handleChallenge(friend)}
+                                   disabled={actionStatus[friend.id] === 'challenging'}
+                                   className="w-11 h-11 flex items-center justify-center bg-white/[0.03] text-[var(--brand-primary)] rounded-2xl border border-white/5 hover:bg-[var(--brand-primary)] hover:text-white hover:border-[var(--brand-primary)] transition-all active:scale-90 group/btn disabled:opacity-50"
+                                   title="Oracle's Gambit"
+                                 >
+                                    {actionStatus[friend.id] === 'challenging' ? (
+                                      <Loader2 size={20} className="animate-spin" />
+                                    ) : (
+                                      <Swords size={20} className="group-hover/btn:rotate-12 transition-transform" />
+                                    )}
+                                 </button>
+                                 <button 
+                                   onClick={() => handleRoast(friend)}
+                                   disabled={actionStatus[friend.id] === 'roasting'}
+                                   className="w-11 h-11 flex items-center justify-center bg-white/[0.03] text-orange-500 rounded-2xl border border-white/5 hover:bg-orange-500 hover:text-white hover:border-orange-500 transition-all active:scale-90 group/btn disabled:opacity-50"
+                                   title="Dispatch Roast"
+                                 >
+                                    {actionStatus[friend.id] === 'roasting' ? (
+                                      <Loader2 size={20} className="animate-spin" />
+                                    ) : (
+                                      <Flame size={20} className="group-hover/btn:scale-110 transition-transform" />
+                                    )}
+                                 </button>
+                              </div>
+                           </div>
+                           
+                           {/* Dossier Footer */}
+                           <div className="mt-8 pt-5 border-t border-white/5 flex items-center justify-between">
+                              <div className="flex gap-6">
+                                 <div className="flex flex-col">
+                                    <span className="text-[8px] font-black uppercase tracking-widest text-[var(--text-muted)]">Experience</span>
+                                    <span className="text-[10px] font-black text-white/80">Fresh Blood</span>
+                                 </div>
+                                 <div className="flex flex-col">
+                                    <span className="text-[8px] font-black uppercase tracking-widest text-[var(--text-muted)]">Alliance</span>
+                                    <span className="text-[10px] font-black text-white/80">Verified</span>
+                                 </div>
+                              </div>
+                              <Link href={`/roast-buddy/${friend.id}`} className="p-2 rounded-xl bg-white/5 text-[var(--text-muted)] hover:text-white hover:bg-white/10 transition-all">
+                                 <ExternalLink size={14} />
+                              </Link>
+                           </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+               ) : (
+                <div className="relative group p-20 text-center card-glass border-dashed border-2 border-white/5 flex flex-col items-center justify-center space-y-8 overflow-hidden rounded-[40px]">
+                  <div className="absolute inset-0 bg-gradient-to-br from-[var(--brand-primary)]/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+                  <div className="w-24 h-24 rounded-[32px] bg-[var(--bg)] border border-white/5 flex items-center justify-center relative z-10 shadow-2xl rotate-3 group-hover:rotate-0 transition-transform duration-500">
+                     <Ghost size={48} className="text-[var(--text-muted)] opacity-30 animate-pulse" />
+                  </div>
+                  <div className="space-y-3 relative z-10">
+                    <h3 className="text-3xl font-black uppercase italic tracking-tighter">Deserted Tent</h3>
+                    <p className="text-[var(--text-muted)] text-sm max-w-sm mx-auto leading-relaxed font-medium">Your social circle is as empty as a clown's promises. Step into the Summoning Circle to recruit some fresh performers.</p>
+                  </div>
+                </div>
+               )}
+            </div>
           </div>
         </div>
       </div>

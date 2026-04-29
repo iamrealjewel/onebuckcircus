@@ -91,6 +91,44 @@ export async function getAIResponse(prompt: string, actId?: string) {
     };
   } catch (error: any) {
     console.error("[Circus Oracle] Failure:", error.message);
-    throw new Error(`The Oracle is currently clouded by mist: ${error.message}.`);
+    
+    // FALLBACK: If the Oracle is down, don't crash the circus.
+    const messages = [
+      "The Oracle is currently busy juggling chainsaws. Try again later.",
+      "The Crystal Ball is out of service. A monkey is fixing it.",
+      "Silence from the mist. The Ringmaster says: 'Just fix the error!'",
+      "The Oracle is on a coffee break with the Bearded Lady."
+    ];
+    const fallbackMsg = messages[Math.floor(Math.random() * messages.length)];
+    
+    // Return a mock response that looks like AI JSON
+    return {
+      content: JSON.stringify({ 
+        message: fallbackMsg, 
+        roast: fallbackMsg,
+        trashTalk: fallbackMsg,
+        verdict: "ORACLE ERROR",
+        ruling: fallbackMsg,
+        judge: "The Sarcastic Stand-in",
+        penalty: "Pay the Ringmaster 1 virtual buck.",
+        topic: "Something went wrong",
+        plaintiffScore: 0,
+        defendantScore: 0,
+        winner: "neither",
+        title: "The Silent Circus",
+        genre: "Error Comedy",
+        tagline: "When the Oracle fails, the monkey takes over.",
+        mainRoast: fallbackMsg,
+        survivalChance: 0,
+        popupRoasts: [
+          { emoji: "🤡", text: "The API is down!" },
+          { emoji: "🙈", text: "Oracle is blind!" }
+        ],
+        topPick: { name: "Error-o-matic", meaning: "Missing Key", reason: "AI Failure" },
+        names: []
+      }),
+      model: "Emergency Fallback",
+      timestamp: new Date().toISOString()
+    };
   }
 }

@@ -27,7 +27,7 @@ export default function ToolWrapper({
             alt="Loading..." 
           />
         </div>
-        <div className="text-[10px] font-black uppercase tracking-[0.4em] text-[var(--brand-primary)] animate-pulse">
+        <div className="text-[10px] font-black uppercase tracking-[0.4em] text-[var(--text-main)] animate-pulse">
           Consulting the Oracle...
         </div>
       </div>

@@ -13,7 +13,7 @@ export async function GET(req: Request) {
   const userId = (session.user as any).id;
 
   try {
-    // 1. Get all accepted friends (can be initiated by user or friend)
+    // 1. Get all accepted friends
     const acceptedFriendships = await prisma.friendship.findMany({
       where: {
         OR: [
@@ -22,14 +22,47 @@ export async function GET(req: Request) {
         ]
       },
       include: {
-        user: { select: { id: true, name: true, email: true, image: true, subscription: { select: { name: true, tier: true } } } },
-        friend: { select: { id: true, name: true, email: true, image: true, subscription: { select: { name: true, tier: true } } } }
+        user: { 
+          select: { 
+            id: true, 
+            name: true, 
+            email: true, 
+            image: true, 
+            points: true,
+            wins: true,
+            losses: true,
+            subscription: { select: { name: true, tier: true } }
+          } 
+        },
+        friend: { 
+          select: { 
+            id: true, 
+            name: true, 
+            email: true, 
+            image: true, 
+            points: true,
+            wins: true,
+            losses: true,
+            subscription: { select: { name: true, tier: true } }
+          } 
+        }
       }
     });
 
+    const friendIds = acceptedFriendships.map(f => f.userId === userId ? f.friendId : f.userId);
+    
+    // Fetch selections independently
+    const allSelections = await prisma.userActSelection.findMany({
+      where: { userId: { in: friendIds } }
+    });
+
     const friends = acceptedFriendships.map(f => {
-      // Return the other person's details
-      return f.userId === userId ? f.friend : f.user;
+      const otherUser = f.userId === userId ? f.friend : f.user;
+      const userSelections = allSelections.filter(s => s.userId === otherUser.id);
+      return {
+        ...otherUser,
+        hasAccessTo: userSelections.map(a => a.actId)
+      };
     });
 
     // 2. Pending Requests Received

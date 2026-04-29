@@ -4,6 +4,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { AuthProvider } from "@/components/AuthProvider";
 import { CircusAlertProvider } from "@/components/CircusAlertProvider";
+import DuelSummonOverlay from "@/components/DuelSummonOverlay";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -19,6 +20,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <AuthProvider>
           <ThemeProvider>
             <CircusAlertProvider>
+              <DuelSummonOverlay />
               {children}
             </CircusAlertProvider>
           </ThemeProvider>

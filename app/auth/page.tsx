@@ -19,7 +19,7 @@ export default function AuthPage() {
             alt="Loading..." 
           />
         </div>
-        <div className="text-[10px] font-black uppercase tracking-[0.4em] text-[var(--brand-primary)] animate-pulse">
+        <div className="text-[10px] font-black uppercase tracking-[0.4em] text-white animate-pulse">
           Summoning the Oracle...
         </div>
       </div>

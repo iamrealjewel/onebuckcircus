@@ -287,3 +287,51 @@ export async function sendFriendInvitationEmail(email: string, inviterName: stri
     return { success: false, error };
   }
 }
+export async function sendAccessRoastEmail(email: string, senderName: string, gameName: string, roast: string) {
+  const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+  });
+
+  const mailOptions = {
+    from: `"One Buck Circus" <${process.env.SMTP_USER}>`,
+    to: email,
+    subject: `You just got BURNED by ${senderName} 🎪🔥`,
+    html: `
+      <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; border: 2px solid #f97316; border-radius: 20px; overflow: hidden; background: #fff;">
+        <div style="background: linear-gradient(to right, #000, #f97316); padding: 40px; text-align: center;">
+          <h1 style="color: #fff; margin: 0; font-size: 32px; letter-spacing: -1px; text-transform: uppercase;">The Oracle's Burn</h1>
+        </div>
+        <div style="padding: 40px;">
+          <h2 style="color: #333; margin-top: 0; font-size: 24px;">Apply Ice to Burned Area...</h2>
+          <p style="color: #666; font-size: 16px; line-height: 1.6;">
+            Your friend <strong>${senderName}</strong> tried to invite you to a match of <strong>${gameName}</strong>, but the Oracle noticed you are currently too "insignificant" to have access.
+          </p>
+          <div style="background: #fff7ed; border-left: 4px solid #f97316; padding: 25px; margin: 20px 0; font-style: italic; color: #7c2d12; font-size: 18px; line-height: 1.5; border-radius: 0 12px 12px 0;">
+            "${roast}"
+          </div>
+          <p style="color: #666; font-size: 14px; line-height: 1.6;">
+            If you want to stop being the punchline of the Oracle's jokes, we suggest you upgrade your Circus Pass immediately.
+          </p>
+          <div style="text-align: center; margin: 40px 0;">
+            <a href="${process.env.NEXTAUTH_URL}/circus-pass" style="background: #f97316; color: #fff; padding: 18px 36px; border-radius: 14px; text-decoration: none; font-weight: 900; font-size: 18px; text-transform: uppercase; letter-spacing: 1px; display: inline-block; box-shadow: 0 10px 15px -3px rgba(249, 115, 22, 0.3);">
+              Upgrade My Pass
+            </a>
+          </div>
+          <p style="color: #999; font-size: 11px; text-align: center; margin-top: 40px;">
+            This roast was officially authorized by the One Buck Circus. Don't take it personally. Or do. It's funnier that way.
+          </p>
+        </div>
+      </div>
+    `,
+  };
+
+  try {
+    await transporter.verify();
+    await transporter.sendMail(mailOptions);
+    return { success: true };
+  } catch (error: any) {
+    console.error("[SMTP] ROAST FAILURE:", error.message);
+    return { success: false, error };
+  }
+}

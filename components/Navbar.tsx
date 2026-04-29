@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { Menu, X, LogOut, User as UserIcon, Shield, Settings, Ghost, Palette, Moon, Sun } from "lucide-react";
 import { useSession, signOut } from "next-auth/react";
+import NotificationCenter from "./NotificationCenter";
 
 export default function Navbar() {
   const { theme, setTheme } = useTheme();
@@ -121,6 +122,9 @@ export default function Navbar() {
                     {((session.user as any).subscriptionType || "NONE") === "NONE" ? "Free Guest" : ((session.user as any).subscriptionType || "").replace("_", " ")}
                   </span>
                 </div>
+
+                <NotificationCenter />
+
                 <Link 
                   href="/settings"
                   className="w-10 h-10 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-color)] flex items-center justify-center hover:border-[var(--brand-primary)] hover:text-[var(--brand-primary)] transition-colors"

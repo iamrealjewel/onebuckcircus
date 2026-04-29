@@ -18,6 +18,10 @@ model User {
   gender           String?
   age              Int?
   address          String?   @db.Text
+  points           Int       @default(0)
+  wins             Int       @default(0)
+  losses           Int       @default(0)
+  preferredAvatar  String?   @default("warlord")
   
   accounts         Account[]
   sessions         Session[]
@@ -36,10 +40,68 @@ model User {
   invitationsSent      EmailInvitation[] @relation("UserInvitations")
   
   // For Tiered access (Chaos/Destruction)
-  selectedApps     UserActSelection[]
+  userSelections   UserActSelection[]
+  
+  // RoastBuddy & Notifications
+  notifications    Notification[]
+  roastRoomMembers RoastRoomMember[]
+  
+  // Tic-Tac-Toe Duels
+  player1Duels     TicTacToeDuel[] @relation("Player1Duels")
+  player2Duels     TicTacToeDuel[] @relation("Player2Duels")
   
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  message   String   @db.Text
+  type      String   // ROAST, INVITE, SYSTEM
+  isRead    Boolean  @default(false)
+  link      String?  // Optional link to the room or act
+  createdAt DateTime @default(now())
+  
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model RoastRoom {
+  id        String   @id @default(cuid())
+  name      String?
+  isGroup   Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  members   RoastRoomMember[]
+  messages  RoastMessage[]
+}
+
+model RoastRoomMember {
+  id        String   @id @default(cuid())
+  roomId    String
+  userId    String
+  role      String?  @default("Performer") // Heckler, Target, Clown King, etc.
+  avatar    String?  @default("🤡")         // Circus-themed emoji/icon
+  
+  room      RoastRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([roomId, userId])
+}
+
+model RoastMessage {
+  id         String   @id @default(cuid())
+  roomId     String
+  senderId   String
+  senderName String
+  content    String   @db.Text
+  isTemplate Boolean  @default(false)
+  emoji      String?
+  createdAt  DateTime @default(now())
+  
+  room       RoastRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
 }
 
 model Subscription {
@@ -52,9 +114,24 @@ model Subscription {
   features         String   @db.Text // JSON string of features
   
   users            User[]
+  actConfigs       SubscriptionActConfig[]
   
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
+}
+
+model SubscriptionActConfig {
+  id              String    @id @default(cuid())
+  subscriptionId  String
+  actId           String
+  isAvailable     Boolean   @default(true)
+  isFree          Boolean   @default(false)
+  freeUntil       DateTime? // Time-limited free access
+  
+  subscription    Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  act             Act          @relation(fields: [actId], references: [id], onDelete: Cascade)
+
+  @@unique([subscriptionId, actId])
 }
 
 model UserActSelection {
@@ -76,12 +153,15 @@ model Act {
   description      String   @db.Text
   emoji            String
   isActive         Boolean  @default(true)
+  isSystem         Boolean  @default(false) // Legacy globally free flag
+  
+  // Relations
+  userSelections   UserActSelection[]
+  subscriptionConfigs SubscriptionActConfig[]
   
   // AI Config for this specific act
   aiModelId        String?
   aiModel          AIModel? @relation(fields: [aiModelId], references: [id])
-  
-  userSelections   UserActSelection[]
   
   createdAt        DateTime @default(now())
 }
@@ -173,4 +253,18 @@ model EmailInvitation {
   message     String?   @db.Text
   
   inviter     User     @relation("UserInvitations", fields: [inviterId], references: [id], onDelete: Cascade)
+}
+model TicTacToeDuel {
+  id          String   @id @default(cuid())
+  player1Id   String
+  player2Id   String
+  board       String   @default("null,null,null,null,null,null,null,null,null")
+  turnId      String   // The ID of the user whose turn it is
+  winnerId    String?
+  status      String   @default("PENDING") // PENDING, ACTIVE, COMPLETED, ABANDONED, REJECTED
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  player1     User     @relation("Player1Duels", fields: [player1Id], references: [id])
+  player2     User     @relation("Player2Duels", fields: [player2Id], references: [id])
 }

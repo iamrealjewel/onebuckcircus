@@ -43,7 +43,7 @@ export const authOptions: NextAuthOptions = {
           where: { email },
           include: { 
             subscription: true,
-            selectedApps: true,
+            userSelections: true,
           }
         });
 
@@ -122,19 +122,20 @@ export const authOptions: NextAuthOptions = {
             where: { id: token.sub as string },
             include: { 
               subscription: true,
-              selectedApps: {
+              userSelections: {
                 include: { act: true }
               }
             }
           });
           
-          if (dbUser) {
+            if (dbUser) {
             (session.user as any).role = dbUser.role;
             (session.user as any).subscriptionType = dbUser.subscription?.tier || "NONE";
             (session.user as any).maxActs = dbUser.subscription?.maxActs || 0;
-            (session.user as any).selectedApps = dbUser.selectedApps.map(s => s.actId);
+            (session.user as any).selectedApps = dbUser.userSelections.map(s => s.actId);
             (session.user as any).subscribedAt = dbUser.subscribedAt;
             (session.user as any).subscriptionEnd = dbUser.subscriptionEnd;
+            (session.user as any).preferredAvatar = dbUser.preferredAvatar;
           }
         } catch (error) {
           console.error("Session fetch error:", error);
@@ -166,7 +167,7 @@ export const authOptions: NextAuthOptions = {
           where: { email: token.email as string },
           include: { 
             subscription: true,
-            selectedApps: true,
+            userSelections: true,
           }
         });
 
@@ -175,7 +176,8 @@ export const authOptions: NextAuthOptions = {
           token.subscriptionType = dbUser.subscription?.tier || "NONE";
           token.subscriptionEnd = dbUser.subscriptionEnd;
           token.maxActs = dbUser.subscription?.maxActs || 0;
-          token.selectedApps = dbUser.selectedApps.map(s => s.actId);
+          token.selectedApps = dbUser.userSelections.map(s => s.actId);
+          token.preferredAvatar = dbUser.preferredAvatar;
         }
       } else if (user) {
         // Initial sign in
@@ -183,7 +185,8 @@ export const authOptions: NextAuthOptions = {
         token.role = u.role;
         token.subscriptionType = u.subscription?.tier || "NONE";
         token.maxActs = u.subscription?.maxActs || 0;
-        token.selectedApps = u.selectedApps?.map((s: any) => s.actId) || [];
+        token.selectedApps = u.userSelections?.map((s: any) => s.actId) || [];
+        token.preferredAvatar = u.preferredAvatar;
       }
       return token;
     },
